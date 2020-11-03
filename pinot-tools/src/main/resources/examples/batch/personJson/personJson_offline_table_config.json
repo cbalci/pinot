@@ -12,10 +12,9 @@
   "tableIndexConfig": {
     "loadMode": "HEAP",
     "invertedIndexColumns": [
-
     ],
     "jsonIndexColumns": [
-
+      "person"
     ]
   },
   "metadata": {
