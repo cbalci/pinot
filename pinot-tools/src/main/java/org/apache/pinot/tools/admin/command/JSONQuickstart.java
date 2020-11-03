@@ -166,7 +166,7 @@ public class JSONQuickstart {
     FileUtils.copyURLToFile(resource, tableConfigFile);
 
     QuickstartTableRequest request =
-        new QuickstartTableRequest("personJson", schemaFile, tableConfigFile, ingestionJobSpecFile, FileFormat.CSV);
+        new QuickstartTableRequest("personJson", schemaFile, tableConfigFile, ingestionJobSpecFile);
     final QuickstartRunner runner = new QuickstartRunner(Lists.newArrayList(request), 1, 1, 1, dataDir);
 
     printStatus(JSONQuickstart.Color.CYAN, "***** Starting Zookeeper, controller, broker and server *****");
