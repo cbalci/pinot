@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.pinot.tools.admin.command;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -128,27 +146,27 @@ public class JSONQuickstart {
     Preconditions.checkState(configDir.mkdirs());
     Preconditions.checkState(dataDir.mkdirs());
 
-    File schemaFile = new File(configDir, "super_schema.json");
-    File dataFile = new File(configDir, "super_data.csv");
-    File tableConfigFile = new File(configDir, "super_offline_table_config.json");
+    File schemaFile = new File(configDir, "personJson_schema.json");
+    File dataFile = new File(configDir, "personJson_data.csv");
+    File tableConfigFile = new File(configDir, "personJson_offline_table_config.json");
     File ingestionJobSpecFile = new File(configDir, "ingestionJobSpec.yaml");
 
     ClassLoader classLoader = JSONQuickstart.class.getClassLoader();
-    URL resource = classLoader.getResource("examples/batch/super/super_schema.json");
+    URL resource = classLoader.getResource("examples/batch/personJson/personJson_schema.json");
     com.google.common.base.Preconditions.checkNotNull(resource);
     FileUtils.copyURLToFile(resource, schemaFile);
-    resource = classLoader.getResource("examples/batch/super/rawdata/super_data.csv");
+    resource = classLoader.getResource("examples/batch/personJson/rawdata/personJson_data.csv");
     com.google.common.base.Preconditions.checkNotNull(resource);
     FileUtils.copyURLToFile(resource, dataFile);
-    resource = classLoader.getResource("examples/batch/super/ingestionJobSpec.yaml");
+    resource = classLoader.getResource("examples/batch/personJson/ingestionJobSpec.yaml");
     com.google.common.base.Preconditions.checkNotNull(resource);
     FileUtils.copyURLToFile(resource, ingestionJobSpecFile);
-    resource = classLoader.getResource("examples/batch/super/super_offline_table_config.json");
+    resource = classLoader.getResource("examples/batch/personJson/personJson_offline_table_config.json");
     com.google.common.base.Preconditions.checkNotNull(resource);
     FileUtils.copyURLToFile(resource, tableConfigFile);
 
     QuickstartTableRequest request =
-        new QuickstartTableRequest("super", schemaFile, tableConfigFile, ingestionJobSpecFile, FileFormat.CSV);
+        new QuickstartTableRequest("personJson", schemaFile, tableConfigFile, ingestionJobSpecFile, FileFormat.CSV);
     final QuickstartRunner runner = new QuickstartRunner(Lists.newArrayList(request), 1, 1, 1, dataDir);
 
     printStatus(JSONQuickstart.Color.CYAN, "***** Starting Zookeeper, controller, broker and server *****");
@@ -162,10 +180,10 @@ public class JSONQuickstart {
         e.printStackTrace();
       }
     }));
-    printStatus(JSONQuickstart.Color.CYAN, "***** Adding super table *****");
+    printStatus(JSONQuickstart.Color.CYAN, "***** Adding personJson table *****");
     runner.addTable();
     printStatus(JSONQuickstart.Color.CYAN,
-        "***** Launch data ingestion job to build index segment for super and push to controller *****");
+        "***** Launch data ingestion job to build index segment for personJson and push to controller *****");
     runner.launchDataIngestionJob();
     printStatus(JSONQuickstart.Color.CYAN,
         "***** Waiting for 5 seconds for the server to fetch the assigned segment *****");
@@ -179,7 +197,7 @@ public class JSONQuickstart {
       throws Exception {
     PluginManager.get().init();
 //    generateFile(new File(
-//        "pinot-tools/src/main/resources/examples/batch/super/rawdata/super_data.csv"));
+//        "pinot-tools/src/main/resources/examples/batch/personJson/rawdata/super_data.csv"));
 
     new JSONQuickstart().execute();
   }
