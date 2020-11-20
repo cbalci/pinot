@@ -31,11 +31,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.pinot.common.metadata.ZKMetadataProvider;
 import org.apache.pinot.common.metrics.ServerMetrics;
 import org.apache.pinot.core.data.manager.SegmentDataManager;
 import org.apache.pinot.core.data.manager.config.TableDataManagerConfig;
 import org.apache.pinot.core.data.readers.MultiplePinotSegmentRecordReader;
 import org.apache.pinot.core.indexsegment.IndexSegment;
+import org.apache.pinot.core.indexsegment.immutable.ImmutableSegmentLoader;
+import org.apache.pinot.core.segment.index.loader.IndexLoadingConfig;
+import org.apache.pinot.spi.data.Schema;
 import org.apache.pinot.spi.data.readers.GenericRow;
 import org.apache.pinot.spi.data.readers.PrimaryKey;
 
@@ -63,7 +67,6 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
   // DimensionTableDataManager Instance properties
   //
 
-  // TODO this map needs to be periodically recycled
   // _lookupTable is a HashMap used for fetching records from a table given the primary key
   private final Map<PrimaryKey, GenericRow> _lookupTable = new HashMap<>();
   private final ReadWriteLock _rwl = new ReentrantReadWriteLock();
@@ -71,13 +74,14 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
   private final Lock _lookupTableWriteLock = _rwl.writeLock();
 
   @Override
-  public void init(TableDataManagerConfig tableDataManagerConfig, String instanceId,
-      ZkHelixPropertyStore<ZNRecord> propertyStore, ServerMetrics serverMetrics, HelixManager helixManager) {
-    super.init(tableDataManagerConfig, instanceId, propertyStore, serverMetrics, helixManager);
+  public void addSegment(File indexDir, IndexLoadingConfig indexLoadingConfig)
+      throws Exception {
+    super.addSegment(indexDir, indexLoadingConfig);
     try {
       prepareLookupTable();
       _logger.info("Successfully loaded lookup table for {}", getTableName());
     } catch (Exception e) {
+      // TODO Discuss whether throwing the exception is better here
       _logger.error("Unable to load lookup table {}\nError: {}\n",
           getTableName(), e.getCause(), e);
     }

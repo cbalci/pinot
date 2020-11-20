@@ -78,9 +78,9 @@ public class LookupTransformFunction extends BaseTransformFunction {
             "Third argument must be the join key on dimension table (primary key)");
 
         _factJoinValueFunction = arguments.get(3);
-//        TransformResultMetadata factJoinValueFunctionResultMetadata = _factJoinValueFunction.getResultMetadata();
-//        Preconditions.checkState(!factJoinValueFunctionResultMetadata.isSingleValue(),
-//            "Third argument must be the join key on dimension table (primary key)");
+        TransformResultMetadata factJoinValueFunctionResultMetadata = _factJoinValueFunction.getResultMetadata();
+        Preconditions.checkState(factJoinValueFunctionResultMetadata.isSingleValue(),
+            "Third argument must be the join key on dimension table (primary key)");
     }
 
     @Override
@@ -107,6 +107,9 @@ public class LookupTransformFunction extends BaseTransformFunction {
     private String lookupDimensionTableColumn(String tableName, String columnName, String pk) {
         DimensionTableDataManager mgr = DimensionTableDataManager.getInstanceByTableName(tableName + "_OFFLINE");
         GenericRow row = mgr.lookupRowByPrimaryKey(new PrimaryKey(new String[]{pk}));
-        return row.getValue(columnName).toString();
+        if (row != null && row.getFieldToValueMap().containsKey(columnName)) {
+            return row.getValue(columnName).toString();
+        }
+        return "";
     }
 }
