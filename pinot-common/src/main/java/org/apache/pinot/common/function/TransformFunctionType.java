@@ -63,7 +63,7 @@ public enum TransformFunctionType {
   VALUEIN("valueIn"),
   MAPVALUE("mapValue"),
   INIDSET("inIdSet"),
-  LOOKUP("lookup"),
+  LOOKUP("lookUp"),
   GROOVY("groovy"),
   // Special type for annotation based scalar functions
   SCALAR("scalar"),

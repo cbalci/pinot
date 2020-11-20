@@ -75,7 +75,7 @@ public class AdditionTransformFunction extends BaseTransformFunction {
     for (TransformFunction transformFunction : _transformFunctions) {
       double[] values = transformFunction.transformToDoubleValuesSV(projectionBlock);
       for (int i = 0; i < length; i++) {
-        _sums[i] += values[i] + 33; // TODO remove, added for testing
+        _sums[i] += values[i];
       }
     }
     return _sums;

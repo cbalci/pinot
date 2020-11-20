@@ -18,6 +18,7 @@
  */
 package org.apache.pinot.core.operator.transform.function;
 
+import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import org.apache.pinot.core.common.DataSource;
 import org.apache.pinot.core.data.manager.offline.DimensionTableDataManager;
@@ -33,15 +34,13 @@ import org.apache.pinot.spi.data.readers.PrimaryKey;
 
 
 public class LookupTransformFunction extends BaseTransformFunction {
-    public static final String FUNCTION_NAME = "lookup";
+    public static final String FUNCTION_NAME = "lookUp";
 
     // Functions which will evaluate to lookup parameters
     private TransformFunction _dimTableNameFunction;
     private TransformFunction _dimColToLookupFunction;
     private TransformFunction _dimJoinKeyFunction;
     private TransformFunction _factJoinValueFunction;
-    private FieldSpec.DataType _lookupColumDataType;
-    private TransformResultMetadata _resultMetadata;
 
     // potential result sets
     private String[] _stringValuesSV;
@@ -55,29 +54,28 @@ public class LookupTransformFunction extends BaseTransformFunction {
     public void init(List<TransformFunction> arguments, Map<String, DataSource> dataSourceMap) {
 
         // Check that there are correct number of arguments
-        if (arguments.size() != 4) {
-            throw new IllegalArgumentException("4 arguments are required for LOOKUP transform function");
+        if (arguments.size() < 4) {
+            throw new IllegalArgumentException("At least 4 arguments are required for LOOKUP transform function");
         }
 
         _dimTableNameFunction = arguments.get(0);
-//        TransformResultMetadata dimTableNameFunctionResultMetadata = _dimTableNameFunction.getResultMetadata();
-//        Preconditions.checkState(!dimTableNameFunctionResultMetadata.isSingleValue(),
-//            "First argument must be a string representing dimension table name");
+        TransformResultMetadata dimTableNameFunctionResultMetadata = _dimTableNameFunction.getResultMetadata();
+        Preconditions.checkState(dimTableNameFunctionResultMetadata.isSingleValue(),
+            "First argument must be a string representing dimension table name");
+        // TODO validate string
         // TODO validate this dim table exists
 
         _dimColToLookupFunction = arguments.get(1);
-//        TransformResultMetadata dimColToLookupFunctionResultMetadata = _dimColToLookupFunction.getResultMetadata();
-//        Preconditions.checkState(!dimColToLookupFunctionResultMetadata.isSingleValue(),
-//            "Second argument must be a string representing column name do the lookup from");
+        TransformResultMetadata dimColToLookupFunctionResultMetadata = _dimColToLookupFunction.getResultMetadata();
+        Preconditions.checkState(dimColToLookupFunctionResultMetadata.isSingleValue(),
+            "Second argument must be a string representing column name do the lookup from");
          // TODO validate this column exists
          // TODO actually lookup the data type of the target column
-//        _lookupColumDataType = dimColToLookupFunctionResultMetadata.getDataType();
-//        _resultMetadata = new TransformResultMetadata(_lookupColumDataType, true, false);
 
         _dimJoinKeyFunction = arguments.get(2);
-//        TransformResultMetadata dimJoinKeyFunctionResultMetadata = _dimJoinKeyFunction.getResultMetadata();
-//        Preconditions.checkState(!dimJoinKeyFunctionResultMetadata.isSingleValue(),
-//            "Third argument must be the join key on dimension table (primary key)");
+        TransformResultMetadata dimJoinKeyFunctionResultMetadata = _dimJoinKeyFunction.getResultMetadata();
+        Preconditions.checkState(dimJoinKeyFunctionResultMetadata.isSingleValue(),
+            "Third argument must be the join key on dimension table (primary key)");
 
         _factJoinValueFunction = arguments.get(3);
 //        TransformResultMetadata factJoinValueFunctionResultMetadata = _factJoinValueFunction.getResultMetadata();
@@ -97,24 +95,18 @@ public class LookupTransformFunction extends BaseTransformFunction {
         }
 
         int length = projectionBlock.getNumDocs();
+        String[] tableNames = _dimTableNameFunction.transformToStringValuesSV(projectionBlock);
+        String[] colNames = _dimColToLookupFunction.transformToStringValuesSV(projectionBlock);
         String[] values = _factJoinValueFunction.transformToStringValuesSV(projectionBlock);
         for (int i = 0; i < length; i++) {
-            _stringValuesSV[i] = lookupDimensionTableColumn("baseballTeams", "teamName", values[i]);
+            _stringValuesSV[i] = lookupDimensionTableColumn(tableNames[i], colNames[i], values[i]);
         }
-
         return _stringValuesSV;
     }
 
     private String lookupDimensionTableColumn(String tableName, String columnName, String pk) {
         DimensionTableDataManager mgr = DimensionTableDataManager.getInstanceByTableName(tableName + "_OFFLINE");
-        PrimaryKey pkParam = new PrimaryKey(new String[]{""});
-        try {
-            GenericRow row = mgr.lookupRowByPrimaryKey(new PrimaryKey(new String[]{pk}));
-            return row.getValue(columnName).toString();
-        } catch (Exception e) {
-            // TODO Discuss potential ways to handle
-            System.out.println("Exception when executing lookup: " +  e.getMessage());
-        }
-        return "";
+        GenericRow row = mgr.lookupRowByPrimaryKey(new PrimaryKey(new String[]{pk}));
+        return row.getValue(columnName).toString();
     }
 }

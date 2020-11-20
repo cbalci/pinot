@@ -55,7 +55,7 @@ public class TableDataManagerProvider {
       case OFFLINE:
         // TODO remove: temporary hack for testing
         if (tableDataManagerConfig.getTableName().equals("baseballTeams_OFFLINE")) {
-          tableDataManager = DimensionTableDataManager.getInstanceByTableName(tableDataManagerConfig.getTableName());
+          tableDataManager = DimensionTableDataManager.createInstanceByTableName(tableDataManagerConfig.getTableName());
           break;
         }
         tableDataManager = new OfflineTableDataManager();
@@ -64,7 +64,7 @@ public class TableDataManagerProvider {
         tableDataManager = new RealtimeTableDataManager(_segmentBuildSemaphore);
         break;
       case DIMENSION:
-        tableDataManager = DimensionTableDataManager.getInstanceByTableName(tableDataManagerConfig.getTableName());
+        tableDataManager = DimensionTableDataManager.createInstanceByTableName(tableDataManagerConfig.getTableName());
         break;
       default:
         throw new IllegalStateException();
