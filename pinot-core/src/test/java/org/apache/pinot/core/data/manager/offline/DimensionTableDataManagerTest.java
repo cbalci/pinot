@@ -21,37 +21,25 @@ package org.apache.pinot.core.data.manager.offline;
 import com.yammer.metrics.core.MetricsRegistry;
 import java.io.File;
 import java.net.URL;
-import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZNRecordUpdater;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
-import org.apache.helix.util.ZNRecordUtil;
 import org.apache.pinot.common.metrics.ServerMetrics;
 import org.apache.pinot.common.segment.ReadMode;
-import org.apache.pinot.common.utils.ZkStarter;
 import org.apache.pinot.core.data.manager.config.TableDataManagerConfig;
-import org.apache.pinot.core.data.readers.MultiplePinotSegmentRecordReader;
 import org.apache.pinot.core.indexsegment.generator.SegmentGeneratorConfig;
 import org.apache.pinot.core.indexsegment.generator.SegmentVersion;
-import org.apache.pinot.core.indexsegment.immutable.ImmutableSegment;
 import org.apache.pinot.core.segment.creator.SegmentIndexCreationDriver;
 import org.apache.pinot.core.segment.creator.impl.SegmentCreationDriverFactory;
 import org.apache.pinot.core.segment.index.loader.IndexLoadingConfig;
 import org.apache.pinot.core.segment.index.loader.LoaderTest;
-import org.apache.pinot.core.segment.index.metadata.SegmentMetadata;
 import org.apache.pinot.segments.v1.creator.SegmentTestUtils;
-import org.apache.pinot.spi.data.Schema;
 import org.apache.pinot.spi.data.readers.GenericRow;
 import org.apache.pinot.spi.data.readers.PrimaryKey;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
@@ -63,22 +51,25 @@ public class DimensionTableDataManagerTest {
   private static final File INDEX_DIR = new File(LoaderTest.class.getName());
   private static final String AVRO_DATA_PATH = "data/baseballTeams.avro";
 
-  private File _tmpDir;
-  private File _avroFile;
   private File _indexDir;
   private IndexLoadingConfig _indexLoadingConfig;
 
   @BeforeSuite
   public void setUp()
       throws Exception {
-    _tmpDir = File.createTempFile("DimensionTableDataManagerTest", null);
-    _tmpDir.deleteOnExit();
-
+    // prepare segment data
     URL resourceUrl = getClass().getClassLoader().getResource(AVRO_DATA_PATH);
     Assert.assertNotNull(resourceUrl);
-    _avroFile = new File(resourceUrl.getFile());
+    File avroFile = new File(resourceUrl.getFile());
 
-    createSegment();
+    // create segment
+    SegmentGeneratorConfig segmentGeneratorConfig =
+        SegmentTestUtils.getSegmentGeneratorConfigWithoutTimeColumn(avroFile, INDEX_DIR, TABLE_NAME);
+    segmentGeneratorConfig.setSegmentVersion(SegmentVersion.v3);
+    SegmentIndexCreationDriver driver = SegmentCreationDriverFactory.get(null);
+    driver.init(segmentGeneratorConfig);
+    driver.build();
+    _indexDir = new File(INDEX_DIR, driver.getSegmentName());
 
     _indexLoadingConfig = new IndexLoadingConfig();
     _indexLoadingConfig.setReadMode(ReadMode.mmap);
@@ -87,12 +78,7 @@ public class DimensionTableDataManagerTest {
 
   @AfterSuite
   public void tearDown() {
-    FileUtils.deleteQuietly(_tmpDir);
     FileUtils.deleteQuietly(INDEX_DIR);
-  }
-
-  @BeforeMethod
-  public void beforeMethod() {
   }
 
   private ZkHelixPropertyStore mockPropertyStore() {
@@ -107,24 +93,13 @@ public class DimensionTableDataManagerTest {
     return propertyStore;
   }
 
-  private void createSegment() throws Exception {
-    SegmentGeneratorConfig segmentGeneratorConfig =
-        SegmentTestUtils.getSegmentGeneratorConfigWithoutTimeColumn(_avroFile, INDEX_DIR, TABLE_NAME);
-    segmentGeneratorConfig.setSegmentVersion(SegmentVersion.v3);
-    SegmentIndexCreationDriver driver = SegmentCreationDriverFactory.get(null);
-    driver.init(segmentGeneratorConfig);
-    driver.build();
-
-    _indexDir = new File(INDEX_DIR, driver.getSegmentName());
-  }
-
   private DimensionTableDataManager makeTestableManager() {
     DimensionTableDataManager tableDataManager = DimensionTableDataManager.createInstanceByTableName(TABLE_NAME);
     TableDataManagerConfig config;
     {
       config = mock(TableDataManagerConfig.class);
       when(config.getTableName()).thenReturn(TABLE_NAME);
-      when(config.getDataDir()).thenReturn(_tmpDir.getAbsolutePath());
+      when(config.getDataDir()).thenReturn(INDEX_DIR.getAbsolutePath());
     }
     tableDataManager
         .init(config, "dummyInstance", mockPropertyStore(), new ServerMetrics(new MetricsRegistry()), mock(
@@ -164,5 +139,4 @@ public class DimensionTableDataManagerTest {
     Assert.assertNotNull(resp, "Should return response after segment load");
     Assert.assertEquals(resp.getValue("teamName"), "San Francisco Giants");
   }
-
 }
