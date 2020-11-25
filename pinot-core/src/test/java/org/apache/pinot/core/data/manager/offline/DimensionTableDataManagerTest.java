@@ -22,6 +22,7 @@ import com.yammer.metrics.core.MetricsRegistry;
 import java.io.File;
 import java.net.URL;
 import java.util.Map;
+import org.apache.commons.io.FileUtils;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
@@ -86,9 +87,8 @@ public class DimensionTableDataManagerTest {
 
   @AfterSuite
   public void tearDown() {
-    if (_tmpDir != null) {
-      org.apache.commons.io.FileUtils.deleteQuietly(_tmpDir);
-    }
+    FileUtils.deleteQuietly(_tmpDir);
+    FileUtils.deleteQuietly(INDEX_DIR);
   }
 
   @BeforeMethod
