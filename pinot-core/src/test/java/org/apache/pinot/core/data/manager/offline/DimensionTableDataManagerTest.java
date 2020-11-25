@@ -1,0 +1,168 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.pinot.core.data.manager.offline;
+
+import com.yammer.metrics.core.MetricsRegistry;
+import java.io.File;
+import java.net.URL;
+import java.util.Map;
+import org.apache.helix.AccessOption;
+import org.apache.helix.HelixManager;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.ZNRecordUpdater;
+import org.apache.helix.manager.zk.ZNRecordSerializer;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.helix.util.ZNRecordUtil;
+import org.apache.pinot.common.metrics.ServerMetrics;
+import org.apache.pinot.common.segment.ReadMode;
+import org.apache.pinot.common.utils.ZkStarter;
+import org.apache.pinot.core.data.manager.config.TableDataManagerConfig;
+import org.apache.pinot.core.data.readers.MultiplePinotSegmentRecordReader;
+import org.apache.pinot.core.indexsegment.generator.SegmentGeneratorConfig;
+import org.apache.pinot.core.indexsegment.generator.SegmentVersion;
+import org.apache.pinot.core.indexsegment.immutable.ImmutableSegment;
+import org.apache.pinot.core.segment.creator.SegmentIndexCreationDriver;
+import org.apache.pinot.core.segment.creator.impl.SegmentCreationDriverFactory;
+import org.apache.pinot.core.segment.index.loader.IndexLoadingConfig;
+import org.apache.pinot.core.segment.index.loader.LoaderTest;
+import org.apache.pinot.core.segment.index.metadata.SegmentMetadata;
+import org.apache.pinot.segments.v1.creator.SegmentTestUtils;
+import org.apache.pinot.spi.data.Schema;
+import org.apache.pinot.spi.data.readers.GenericRow;
+import org.apache.pinot.spi.data.readers.PrimaryKey;
+import org.testng.Assert;
+import org.testng.annotations.AfterSuite;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.BeforeSuite;
+import org.testng.annotations.Test;
+
+import static org.mockito.Mockito.*;
+
+
+public class DimensionTableDataManagerTest {
+  private static final String TABLE_NAME = "baseballTeams";
+  private static final File INDEX_DIR = new File(LoaderTest.class.getName());
+  private static final String AVRO_DATA_PATH = "data/baseballTeams.avro";
+
+  private File _tmpDir;
+  private File _avroFile;
+  private File _indexDir;
+  private IndexLoadingConfig _indexLoadingConfig;
+
+  @BeforeSuite
+  public void setUp()
+      throws Exception {
+    _tmpDir = File.createTempFile("DimensionTableDataManagerTest", null);
+    _tmpDir.deleteOnExit();
+
+    URL resourceUrl = getClass().getClassLoader().getResource(AVRO_DATA_PATH);
+    Assert.assertNotNull(resourceUrl);
+    _avroFile = new File(resourceUrl.getFile());
+
+    createSegment();
+
+    _indexLoadingConfig = new IndexLoadingConfig();
+    _indexLoadingConfig.setReadMode(ReadMode.mmap);
+    _indexLoadingConfig.setSegmentVersion(SegmentVersion.v3);
+  }
+
+  @AfterSuite
+  public void tearDown() {
+    if (_tmpDir != null) {
+      org.apache.commons.io.FileUtils.deleteQuietly(_tmpDir);
+    }
+  }
+
+  @BeforeMethod
+  public void beforeMethod() {
+  }
+
+  private ZkHelixPropertyStore mockPropertyStore() {
+    String baseballTeamsSchemaStr = "{\"schemaName\":\"baseballTeams\",\"dimensionFieldSpecs\":[{\"name\":\"teamID\",\"dataType\":\"STRING\"},{\"name\":\"teamName\",\"dataType\":\"STRING\"}],\"primaryKeyColumns\":[\"teamID\"]}";
+    ZNRecord zkSchemaRec = new ZNRecord("baseballTeams");
+    zkSchemaRec.setSimpleField("schemaJSON", baseballTeamsSchemaStr);
+
+    ZkHelixPropertyStore propertyStore = mock(ZkHelixPropertyStore.class);
+    when(propertyStore.get("/SCHEMAS/baseballTeams", null, AccessOption.PERSISTENT)).
+        thenReturn(zkSchemaRec);
+
+    return propertyStore;
+  }
+
+  private void createSegment() throws Exception {
+    SegmentGeneratorConfig segmentGeneratorConfig =
+        SegmentTestUtils.getSegmentGeneratorConfigWithoutTimeColumn(_avroFile, INDEX_DIR, TABLE_NAME);
+    segmentGeneratorConfig.setSegmentVersion(SegmentVersion.v3);
+    SegmentIndexCreationDriver driver = SegmentCreationDriverFactory.get(null);
+    driver.init(segmentGeneratorConfig);
+    driver.build();
+
+    _indexDir = new File(INDEX_DIR, driver.getSegmentName());
+  }
+
+  private DimensionTableDataManager makeTestableManager() {
+    DimensionTableDataManager tableDataManager = DimensionTableDataManager.createInstanceByTableName(TABLE_NAME);
+    TableDataManagerConfig config;
+    {
+      config = mock(TableDataManagerConfig.class);
+      when(config.getTableName()).thenReturn(TABLE_NAME);
+      when(config.getDataDir()).thenReturn(_tmpDir.getAbsolutePath());
+    }
+    tableDataManager
+        .init(config, "dummyInstance", mockPropertyStore(), new ServerMetrics(new MetricsRegistry()), mock(
+            HelixManager.class));
+    tableDataManager.start();
+
+   return tableDataManager;
+  }
+
+  @Test
+  public void instantiationTests() throws Exception {
+    DimensionTableDataManager mgr = makeTestableManager();
+    Assert.assertEquals(mgr.getTableName(), TABLE_NAME);
+
+    // fetch the same instance via static method
+    DimensionTableDataManager returnedManager = DimensionTableDataManager.getInstanceByTableName(TABLE_NAME);
+    Assert.assertNotNull(returnedManager, "Manager should find instance");
+    Assert.assertEquals(mgr, returnedManager, "Manager should return already created instance");
+
+    // try fetching non-existent table
+    returnedManager = DimensionTableDataManager.getInstanceByTableName("doesNotExist");
+    Assert.assertNull(returnedManager, "Manager should return null for non-existent table");
+  }
+
+  @Test
+  public void lookupTableLoadTests() throws Exception {
+    DimensionTableDataManager mgr = makeTestableManager();
+
+    // try fetching data BEFORE loading segment
+    GenericRow resp = mgr.lookupRowByPrimaryKey(new PrimaryKey(new String[]{"SF"}));
+    Assert.assertNull(resp, "Response should be null if no segment is loaded");
+
+    mgr.addSegment(_indexDir, _indexLoadingConfig);
+
+    // Confirm table is loaded and available for lookup
+    resp = mgr.lookupRowByPrimaryKey(new PrimaryKey(new String[]{"SF"}));
+    Assert.assertNotNull(resp, "Should return response after segment load");
+    Assert.assertEquals(resp.getValue("teamName"), "San Francisco Giants");
+  }
+
+}

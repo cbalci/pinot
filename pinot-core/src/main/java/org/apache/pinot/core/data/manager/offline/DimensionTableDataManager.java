@@ -18,9 +18,9 @@
  */
 package org.apache.pinot.core.data.manager.offline;
 
+import com.google.common.base.Preconditions;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,16 +28,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.apache.helix.HelixManager;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.pinot.common.metadata.ZKMetadataProvider;
-import org.apache.pinot.common.metrics.ServerMetrics;
 import org.apache.pinot.core.data.manager.SegmentDataManager;
-import org.apache.pinot.core.data.manager.config.TableDataManagerConfig;
 import org.apache.pinot.core.data.readers.MultiplePinotSegmentRecordReader;
 import org.apache.pinot.core.indexsegment.IndexSegment;
-import org.apache.pinot.core.indexsegment.immutable.ImmutableSegmentLoader;
 import org.apache.pinot.core.segment.index.loader.IndexLoadingConfig;
 import org.apache.pinot.spi.data.Schema;
 import org.apache.pinot.spi.data.readers.GenericRow;
@@ -46,7 +41,8 @@ import org.apache.pinot.spi.data.readers.PrimaryKey;
 
 /**
  * Dimension Table is a special type of OFFLINE table which is assigned to all servers
- * and is used to execute a LOOKUP Transform Function. They should be small enough to fit in memory(<100MB).
+ * and is used to execute a LOOKUP Transform Function. They should be small enough to
+ * easily fit in memory (<200MB).
  *
  * DimensionTableDataManager uses Registry of Singletons pattern to store one instance per table
  * which can be accessed via 'getInstanceByTableName' static method.
@@ -72,6 +68,18 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
   private final ReadWriteLock _rwl = new ReentrantReadWriteLock();
   private final Lock _lookupTableReadLock = _rwl.readLock();
   private final Lock _lookupTableWriteLock = _rwl.writeLock();
+  private List<String> _primaryKeyColumns;
+
+  @Override
+  protected void doInit() {
+    super.doInit();
+
+    Schema schema = ZKMetadataProvider.getTableSchema(_propertyStore, _tableNameWithType);
+    Preconditions.checkState(schema != null, "Failed to find schema for table: %s", _tableNameWithType);
+    _primaryKeyColumns = schema.getPrimaryKeyColumns();
+    Preconditions.checkState(!CollectionUtils.isEmpty(_primaryKeyColumns),
+        "Primary key columns must be configured for dimension tables");
+  }
 
   @Override
   public void addSegment(File indexDir, IndexLoadingConfig indexLoadingConfig)
@@ -81,35 +89,27 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
       prepareLookupTable();
       _logger.info("Successfully loaded lookup table for {}", getTableName());
     } catch (Exception e) {
-      // TODO Discuss whether throwing the exception is better here
-      _logger.error("Unable to load lookup table {}\nError: {}\n",
-          getTableName(), e.getCause(), e);
+      throw new RuntimeException(
+          String.format("Error loading lookup table: {}", getTableName()),e);
     }
   }
 
   private void prepareLookupTable() throws Exception {
     List<SegmentDataManager> segmentManagers = acquireAllSegments();
     List<File> indexDirs = new ArrayList<>();
-    List<String> primaryKeyColumns = new ArrayList<>();
 
     for (SegmentDataManager segmentManager: segmentManagers) {
       IndexSegment indexSegment = segmentManager.getSegment();
       indexDirs.add(indexSegment.getSegmentMetadata().getIndexDir());
-      primaryKeyColumns = indexSegment.getSegmentMetadata().getSchema().getPrimaryKeyColumns();
     }
     MultiplePinotSegmentRecordReader reader = new MultiplePinotSegmentRecordReader(indexDirs);
-
-    // TODO validate primary key columns exist
-    if (primaryKeyColumns == null) {
-      primaryKeyColumns = new ArrayList<>(Arrays.asList("teamID"));
-    }
 
     _lookupTableWriteLock.lock();
     try {
       _lookupTable.clear();
       while (reader.hasNext()) {
         GenericRow row = reader.next();
-        _lookupTable.put(row.getPrimaryKey(primaryKeyColumns), row);
+        _lookupTable.put(row.getPrimaryKey(_primaryKeyColumns), row);
       }
     } finally {
       _lookupTableWriteLock.unlock();
