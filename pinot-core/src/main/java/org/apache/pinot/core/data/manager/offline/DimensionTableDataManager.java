@@ -34,6 +34,7 @@ import org.apache.pinot.core.data.manager.SegmentDataManager;
 import org.apache.pinot.core.data.readers.MultiplePinotSegmentRecordReader;
 import org.apache.pinot.core.indexsegment.IndexSegment;
 import org.apache.pinot.core.segment.index.loader.IndexLoadingConfig;
+import org.apache.pinot.spi.data.FieldSpec;
 import org.apache.pinot.spi.data.Schema;
 import org.apache.pinot.spi.data.readers.GenericRow;
 import org.apache.pinot.spi.data.readers.PrimaryKey;
@@ -50,6 +51,8 @@ import org.apache.pinot.spi.data.readers.PrimaryKey;
 public class DimensionTableDataManager extends OfflineTableDataManager {
   // Store singletons per table in this map
   private static final Map<String, DimensionTableDataManager> _instances = new ConcurrentHashMap<>();
+
+  private DimensionTableDataManager() {}
 
   public static DimensionTableDataManager createInstanceByTableName(String tableName) {
     _instances.putIfAbsent(tableName, new DimensionTableDataManager());
@@ -68,15 +71,17 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
   private final ReadWriteLock _rwl = new ReentrantReadWriteLock();
   private final Lock _lookupTableReadLock = _rwl.readLock();
   private final Lock _lookupTableWriteLock = _rwl.writeLock();
+
+  private Schema _tableSchema;
   private List<String> _primaryKeyColumns;
 
   @Override
   protected void doInit() {
     super.doInit();
 
-    Schema schema = ZKMetadataProvider.getTableSchema(_propertyStore, _tableNameWithType);
-    Preconditions.checkState(schema != null, "Failed to find schema for table: %s", _tableNameWithType);
-    _primaryKeyColumns = schema.getPrimaryKeyColumns();
+    _tableSchema = ZKMetadataProvider.getTableSchema(_propertyStore, _tableNameWithType);
+    Preconditions.checkState(_tableSchema != null, "Failed to find schema for table: %s", _tableNameWithType);
+    _primaryKeyColumns = _tableSchema.getPrimaryKeyColumns();
     Preconditions.checkState(!CollectionUtils.isEmpty(_primaryKeyColumns),
         "Primary key columns must be configured for dimension tables");
   }
@@ -90,7 +95,7 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
       _logger.info("Successfully loaded lookup table for {}", getTableName());
     } catch (Exception e) {
       throw new RuntimeException(
-          String.format("Error loading lookup table: {}", getTableName()),e);
+          String.format("Error loading lookup table: %s", getTableName()),e);
     }
   }
 
@@ -123,5 +128,10 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
     } finally {
       _lookupTableReadLock.unlock();
     }
+  }
+
+  // TODO make thread safe
+  public FieldSpec getColumnFieldSpec(String columnName) {
+    return _tableSchema.getFieldSpecFor(columnName);
   }
 }
