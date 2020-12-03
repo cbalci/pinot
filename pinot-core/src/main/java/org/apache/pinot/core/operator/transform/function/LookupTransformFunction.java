@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
 import com.google.common.base.Preconditions;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.pinot.core.common.DataSource;
 import org.apache.pinot.core.data.manager.offline.DimensionTableDataManager;
 import org.apache.pinot.core.operator.blocks.ProjectionBlock;
@@ -106,6 +107,7 @@ public class LookupTransformFunction extends BaseTransformFunction {
             _joinValueFunctions.add(factJoinValueFunction);
         }
 
+        // Validate lookup table and relevant columns
         _dataManager = DimensionTableDataManager.getInstanceByTableName(_dimTableName + TABLE_NAME_SUFFIX);
         Preconditions.checkState(_dataManager != null, "Dimension table does not exist");
 
@@ -126,51 +128,22 @@ public class LookupTransformFunction extends BaseTransformFunction {
             false);
     }
 
-    @Override
-    public float[] transformToFloatValuesSV(ProjectionBlock projectionBlock) {
-        Object[] lookupObjects = lookup(projectionBlock);
-        float[] resultSet = new float[lookupObjects.length];
-        Arrays.fill(resultSet, (float)_lookupColumnFieldSpec.getDefaultNullValue());
-        for (int i=0; i<lookupObjects.length; i++) {
-            resultSet[i] = (float)lookupObjects[i];
-        }
-        return resultSet;
-    }
-
-    @Override
-    public String[] transformToStringValuesSV(ProjectionBlock projectionBlock) {
-        Object[] lookupObjects = lookup(projectionBlock);
-        String[] resultSet = new String[lookupObjects.length];
-        Arrays.fill(resultSet, _lookupColumnFieldSpec.getDefaultNullValueString());
-        for (int i=0; i<lookupObjects.length; i++) {
-            if (lookupObjects[i] != null) {
-                resultSet[i] = lookupObjects[i].toString();
-            }
-        }
-        return resultSet;
-    }
-
-    @Override
-    public int[] transformToIntValuesSV(ProjectionBlock projectionBlock) {
-        Object[] lookupObjects = lookup(projectionBlock);
-        int[] resultSet = new int[lookupObjects.length];
-        Arrays.fill(resultSet, (int)_lookupColumnFieldSpec.getDefaultNullValue());
-        for (int i=0; i<lookupObjects.length; i++) {
-            resultSet[i] = (int)lookupObjects[i];
-        }
-        return resultSet;
-    }
-
     private Object[] lookup(ProjectionBlock projectionBlock) {
         int numPkColumns = _joinKeys.size();
         int numDocuments = projectionBlock.getNumDocs();
         Object[][] pkColumns = new Object[numPkColumns][];
         for (int i=0; i<numPkColumns; i++) {
             FieldSpec.DataType colType = _joinValueFieldSpecs.get(i).getDataType();
+            TransformFunction tf = _joinValueFunctions.get(i);
             switch (colType) {
                 case STRING:
-                    TransformFunction tf = _joinValueFunctions.get(i);
                     pkColumns[i] = tf.transformToStringValuesSV(projectionBlock);
+                    break;
+                case INT:
+                    pkColumns[i] = ArrayUtils.toObject(tf.transformToIntValuesSV(projectionBlock));
+                    break;
+                case LONG:
+                    pkColumns[i] = ArrayUtils.toObject(tf.transformToLongValuesSV(projectionBlock));
                     break;
                 default:
                     throw new IllegalStateException("Unknown column type for primary key");
@@ -189,6 +162,129 @@ public class LookupTransformFunction extends BaseTransformFunction {
             if (row != null && row.getFieldToValueMap().containsKey(_dimColumnName)) {
                 resultSet[i] = row.getValue(_dimColumnName);
             }
+        }
+        return resultSet;
+    }
+
+    @Override
+    public int[] transformToIntValuesSV(ProjectionBlock projectionBlock) {
+        Object[] lookupObjects = lookup(projectionBlock);
+        int[] resultSet = new int[lookupObjects.length];
+        Arrays.fill(resultSet, (int)_lookupColumnFieldSpec.getDefaultNullValue());
+        for (int i=0; i<lookupObjects.length; i++) {
+            resultSet[i] = (int)lookupObjects[i];
+        }
+        return resultSet;
+    }
+
+    @Override
+    public long[] transformToLongValuesSV(ProjectionBlock projectionBlock) {
+        Object[] lookupObjects = lookup(projectionBlock);
+        long[] resultSet = new long[lookupObjects.length];
+        Arrays.fill(resultSet, (long)_lookupColumnFieldSpec.getDefaultNullValue());
+        for (int i=0; i<lookupObjects.length; i++) {
+            resultSet[i] = (long)lookupObjects[i];
+        }
+        return resultSet;
+    }
+
+    @Override
+    public float[] transformToFloatValuesSV(ProjectionBlock projectionBlock) {
+        Object[] lookupObjects = lookup(projectionBlock);
+        float[] resultSet = new float[lookupObjects.length];
+        Arrays.fill(resultSet, (float)_lookupColumnFieldSpec.getDefaultNullValue());
+        for (int i=0; i<lookupObjects.length; i++) {
+            resultSet[i] = (float)lookupObjects[i];
+        }
+        return resultSet;
+    }
+
+    @Override
+    public double[] transformToDoubleValuesSV(ProjectionBlock projectionBlock) {
+        Object[] lookupObjects = lookup(projectionBlock);
+        double[] resultSet = new double[lookupObjects.length];
+        Arrays.fill(resultSet, (double)_lookupColumnFieldSpec.getDefaultNullValue());
+        for (int i=0; i<lookupObjects.length; i++) {
+            resultSet[i] = (double)lookupObjects[i];
+        }
+        return resultSet;
+    }
+
+    @Override
+    public String[] transformToStringValuesSV(ProjectionBlock projectionBlock) {
+        Object[] lookupObjects = lookup(projectionBlock);
+        String[] resultSet = new String[lookupObjects.length];
+        Arrays.fill(resultSet, _lookupColumnFieldSpec.getDefaultNullValueString());
+        for (int i=0; i<lookupObjects.length; i++) {
+            if (lookupObjects[i] != null) {
+                resultSet[i] = lookupObjects[i].toString();
+            }
+        }
+        return resultSet;
+    }
+
+    @Override
+    public byte[][] transformToBytesValuesSV(ProjectionBlock projectionBlock) {
+        Object[] lookupObjects = lookup(projectionBlock);
+        byte[][] resultSet = new byte[lookupObjects.length][];
+        Arrays.fill(resultSet, (byte[])_lookupColumnFieldSpec.getDefaultNullValue());
+        for (int i=0; i<lookupObjects.length; i++) {
+            resultSet[i] = (byte[])lookupObjects[i];
+        }
+        return resultSet;
+    }
+
+    @Override
+    public int[][] transformToIntValuesMV(ProjectionBlock projectionBlock) {
+        Object[] lookupObjects = lookup(projectionBlock);
+        int[][] resultSet = new int[lookupObjects.length][];
+        Arrays.fill(resultSet, (int[])_lookupColumnFieldSpec.getDefaultNullValue());
+        for (int i=0; i<lookupObjects.length; i++) {
+            resultSet[i] = (int[])lookupObjects[i];
+        }
+        return resultSet;
+    }
+
+    @Override
+    public long[][] transformToLongValuesMV(ProjectionBlock projectionBlock) {
+        Object[] lookupObjects = lookup(projectionBlock);
+        long[][] resultSet = new long[lookupObjects.length][];
+        Arrays.fill(resultSet, (long[])_lookupColumnFieldSpec.getDefaultNullValue());
+        for (int i=0; i<lookupObjects.length; i++) {
+            resultSet[i] = (long[])lookupObjects[i];
+        }
+        return resultSet;
+    }
+
+    @Override
+    public float[][] transformToFloatValuesMV(ProjectionBlock projectionBlock) {
+        Object[] lookupObjects = lookup(projectionBlock);
+        float[][] resultSet = new float[lookupObjects.length][];
+        Arrays.fill(resultSet, (float[])_lookupColumnFieldSpec.getDefaultNullValue());
+        for (int i=0; i<lookupObjects.length; i++) {
+            resultSet[i] = (float[])lookupObjects[i];
+        }
+        return resultSet;
+    }
+
+    @Override
+    public double[][] transformToDoubleValuesMV(ProjectionBlock projectionBlock) {
+        Object[] lookupObjects = lookup(projectionBlock);
+        double[][] resultSet = new double[lookupObjects.length][];
+        Arrays.fill(resultSet, (double[])_lookupColumnFieldSpec.getDefaultNullValue());
+        for (int i=0; i<lookupObjects.length; i++) {
+            resultSet[i] = (double[])lookupObjects[i];
+        }
+        return resultSet;
+    }
+
+    @Override
+    public String[][] transformToStringValuesMV(ProjectionBlock projectionBlock) {
+        Object[] lookupObjects = lookup(projectionBlock);
+        String[][] resultSet = new String[lookupObjects.length][];
+        Arrays.fill(resultSet, (String[])_lookupColumnFieldSpec.getDefaultNullValue());
+        for (int i=0; i<lookupObjects.length; i++) {
+            resultSet[i] = (String[])lookupObjects[i];
         }
         return resultSet;
     }

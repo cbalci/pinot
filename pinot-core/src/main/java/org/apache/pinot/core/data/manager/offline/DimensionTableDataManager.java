@@ -18,6 +18,7 @@
  */
 package org.apache.pinot.core.data.manager.offline;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.io.File;
 import java.util.ArrayList;
@@ -56,6 +57,12 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
 
   public static DimensionTableDataManager createInstanceByTableName(String tableName) {
     _instances.putIfAbsent(tableName, new DimensionTableDataManager());
+    return _instances.get(tableName);
+  }
+
+  @VisibleForTesting
+  public static DimensionTableDataManager registerDimensionTable(String tableName, DimensionTableDataManager instance) {
+    _instances.putIfAbsent(tableName, instance);
     return _instances.get(tableName);
   }
 
@@ -100,17 +107,17 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
   }
 
   private void prepareLookupTable() throws Exception {
-    List<SegmentDataManager> segmentManagers = acquireAllSegments();
-    List<File> indexDirs = new ArrayList<>();
-
-    for (SegmentDataManager segmentManager: segmentManagers) {
-      IndexSegment indexSegment = segmentManager.getSegment();
-      indexDirs.add(indexSegment.getSegmentMetadata().getIndexDir());
-    }
-    MultiplePinotSegmentRecordReader reader = new MultiplePinotSegmentRecordReader(indexDirs);
-
     _lookupTableWriteLock.lock();
     try {
+      List<SegmentDataManager> segmentManagers = acquireAllSegments();
+      List<File> indexDirs = new ArrayList<>();
+
+      for (SegmentDataManager segmentManager: segmentManagers) {
+        IndexSegment indexSegment = segmentManager.getSegment();
+        indexDirs.add(indexSegment.getSegmentMetadata().getIndexDir());
+      }
+      MultiplePinotSegmentRecordReader reader = new MultiplePinotSegmentRecordReader(indexDirs);
+
       _lookupTable.clear();
       while (reader.hasNext()) {
         GenericRow row = reader.next();
@@ -130,7 +137,6 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
     }
   }
 
-  // TODO make thread safe
   public FieldSpec getColumnFieldSpec(String columnName) {
     return _tableSchema.getFieldSpecFor(columnName);
   }
