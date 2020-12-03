@@ -159,22 +159,22 @@ public class Quickstart {
 
     QuickstartTableRequest request = new QuickstartTableRequest(baseDir.getAbsolutePath());
 
-    File dimBaseDir = new File(quickstartTmpDir, "baseballTeams");
-    File dimSchemaFile = new File(dimBaseDir, "baseballTeams_schema.json");
-    File dimDataFile = new File(dataDir, "baseballTeams_data.csv");
-    File dimTableConfigFile = new File(dimBaseDir, "baseballTeams_offline_table_config.json");
+    File dimBaseDir = new File(quickstartTmpDir, "dimBaseballTeams");
+    File dimSchemaFile = new File(dimBaseDir, "dimBaseballTeams_schema.json");
+    File dimDataFile = new File(dataDir, "dimBaseballTeams_data.csv");
+    File dimTableConfigFile = new File(dimBaseDir, "dimBaseballTeams_offline_table_config.json");
     File dimIngestionJobSpecFile = new File(dimBaseDir, "ingestionJobSpec.yaml");
 
-    URL dimResource = classLoader.getResource("examples/batch/baseballTeams/baseballTeams_schema.json");
+    URL dimResource = classLoader.getResource("examples/batch/dimBaseballTeams/dimBaseballTeams_schema.json");
     com.google.common.base.Preconditions.checkNotNull(dimResource);
     FileUtils.copyURLToFile(dimResource, dimSchemaFile);
-    dimResource = classLoader.getResource("examples/batch/baseballTeams/rawdata/baseballTeams_data.csv");
+    dimResource = classLoader.getResource("examples/batch/dimBaseballTeams/rawdata/dimBaseballTeams_data.csv");
     com.google.common.base.Preconditions.checkNotNull(dimResource);
     FileUtils.copyURLToFile(dimResource, dimDataFile);
-    dimResource = classLoader.getResource("examples/batch/baseballTeams/ingestionJobSpec.yaml");
+    dimResource = classLoader.getResource("examples/batch/dimBaseballTeams/ingestionJobSpec.yaml");
     com.google.common.base.Preconditions.checkNotNull(dimResource);
     FileUtils.copyURLToFile(dimResource, dimIngestionJobSpecFile);
-    dimResource = classLoader.getResource("examples/batch/baseballTeams/baseballTeams_offline_table_config.json");
+    dimResource = classLoader.getResource("examples/batch/dimBaseballTeams/dimBaseballTeams_offline_table_config.json");
     com.google.common.base.Preconditions.checkNotNull(dimResource);
     FileUtils.copyURLToFile(dimResource, dimTableConfigFile);
 

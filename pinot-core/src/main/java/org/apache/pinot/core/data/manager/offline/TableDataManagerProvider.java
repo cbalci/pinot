@@ -54,7 +54,7 @@ public class TableDataManagerProvider {
     switch (TableDataManagerType.valueOf(tableDataManagerConfig.getTableDataManagerType())) {
       case OFFLINE:
         // TODO remove: temporary hack for testing
-        if (tableDataManagerConfig.getTableName().equals("baseballTeams_OFFLINE")) {
+        if (tableDataManagerConfig.getTableName().equals("dimBaseballTeams_OFFLINE")) {
           tableDataManager = DimensionTableDataManager.createInstanceByTableName(tableDataManagerConfig.getTableName());
           break;
         }
