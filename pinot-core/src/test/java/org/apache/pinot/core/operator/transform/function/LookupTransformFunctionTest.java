@@ -24,9 +24,15 @@ import org.apache.pinot.core.query.request.context.ExpressionContext;
 import org.apache.pinot.core.query.request.context.utils.QueryContextConverterUtils;
 import org.apache.pinot.spi.data.DimensionFieldSpec;
 import org.apache.pinot.spi.data.FieldSpec;
+import org.apache.pinot.spi.data.readers.GenericRow;
+import org.apache.pinot.spi.data.readers.PrimaryKey;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
+
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.mockito.Mockito.*;
 
@@ -38,15 +44,61 @@ public class LookupTransformFunctionTest extends BaseTransformFunctionTest {
     public void setUp() throws Exception {
         super.setUp();
 
+        createTestableTableManager();
+    }
+
+    private void createTestableTableManager() {
         tableManager = mock(DimensionTableDataManager.class);
         DimensionTableDataManager.registerDimensionTable(TABLE_NAME, tableManager);
 
-        when(tableManager.getColumnFieldSpec("teamName")).thenReturn(
-                new DimensionFieldSpec("teamName", FieldSpec.DataType.STRING, true)
-        );
+        // Creating a mock table which looks like:
+        // TeamID (PK, str) | TeamName(str) | TeamName_MV(str[]) | TeamInteger(int) | TeamInteger_MV(int[]) | TeamFloat(float) | ...
+        //
+        // All values are dynamically created to be variations of the primary key.
+        // e.g
+        // lookupRowByPrimaryKey(['FOO']) -> (TeamID: 'foo', TeamName: 'teamName_for_foo', TeamInteger: hashCode(['foo']), ...
+        //
         when(tableManager.getColumnFieldSpec("teamID")).thenReturn(
-                new DimensionFieldSpec("teamID", FieldSpec.DataType.STRING, true)
-        );
+                new DimensionFieldSpec("teamID", FieldSpec.DataType.STRING, true));
+        when(tableManager.getColumnFieldSpec("teamName")).thenReturn(
+                new DimensionFieldSpec("teamName", FieldSpec.DataType.STRING, true));
+        when(tableManager.getColumnFieldSpec("teamName_MV")).thenReturn(
+                new DimensionFieldSpec("teamName_MV", FieldSpec.DataType.STRING, false));
+        when(tableManager.getColumnFieldSpec("teamInteger")).thenReturn(
+                new DimensionFieldSpec("teamInteger", FieldSpec.DataType.INT, true));
+        when(tableManager.getColumnFieldSpec("teamInteger_MV")).thenReturn(
+                new DimensionFieldSpec("teamInteger_MV", FieldSpec.DataType.INT, false));
+        when(tableManager.getColumnFieldSpec("teamFloat")).thenReturn(
+                new DimensionFieldSpec("teamFloat", FieldSpec.DataType.FLOAT, true));
+        when(tableManager.getColumnFieldSpec("teamFloat_MV")).thenReturn(
+                new DimensionFieldSpec("teamFloat_MV", FieldSpec.DataType.FLOAT, false));
+        when(tableManager.getColumnFieldSpec("teamDouble")).thenReturn(
+                new DimensionFieldSpec("teamDouble", FieldSpec.DataType.DOUBLE, true));
+        when(tableManager.getColumnFieldSpec("teamDouble_MV")).thenReturn(
+                new DimensionFieldSpec("teamDouble_MV", FieldSpec.DataType.DOUBLE, false));
+        when(tableManager.getColumnFieldSpec("teamLong")).thenReturn(
+                new DimensionFieldSpec("teamLong", FieldSpec.DataType.LONG, true));
+        when(tableManager.getColumnFieldSpec("teamLong_MV")).thenReturn(
+                new DimensionFieldSpec("teamLong_MV", FieldSpec.DataType.LONG, false));
+        when(tableManager.lookupRowByPrimaryKey(any(PrimaryKey.class)))
+                .thenAnswer(invocation -> {
+                    PrimaryKey key = invocation.getArgument(0);
+                    GenericRow row = new GenericRow();
+                    row.putValue("teamName", "teamName_for_" + key.toString());
+                    row.putValue("teamName_MV", new String[]{
+                            "teamName_for_" + key.toString() + "_1",
+                            "teamName_for_" + key.toString() + "_2",
+                    });
+                    row.putValue("teamInteger", key.hashCode());
+                    row.putValue("teamInteger_MV", new int[]{key.hashCode(), key.hashCode()});
+                    row.putValue("teamFloat", (float)key.hashCode());
+                    row.putValue("teamFloat_MV", new float[]{(float)key.hashCode(),(float)key.hashCode()});
+                    row.putValue("teamDouble", (double)key.hashCode());
+                    row.putValue("teamDouble_MV", new double[]{(double)key.hashCode(), (double)key.hashCode()});
+                    row.putValue("teamLong", (long)key.hashCode());
+                    row.putValue("teamLong_MV", new long[]{(long)key.hashCode(),(long)key.hashCode()});
+                    return row;
+                });
     }
 
     @Test
@@ -93,5 +145,106 @@ public class LookupTransformFunctionTest extends BaseTransformFunctionTest {
         });
     }
 
-    // TODO More coverage
+    @Test
+    public void resultDataTypeTest() throws Exception {
+        HashMap<String, FieldSpec.DataType> testCases = new HashMap<String, FieldSpec.DataType>(){{
+            put("teamName", FieldSpec.DataType.STRING);
+            put("teamInteger", FieldSpec.DataType.INT);
+            put("teamFloat", FieldSpec.DataType.FLOAT);
+            put("teamLong", FieldSpec.DataType.LONG);
+            put("teamDouble", FieldSpec.DataType.DOUBLE);
+        }};
+
+        for (Map.Entry<String, FieldSpec.DataType> testCase : testCases.entrySet()) {
+            ExpressionContext expression = QueryContextConverterUtils.getExpression(String
+                    .format("lookup('baseballTeams','%s','teamID',%s)", testCase.getKey(), STRING_SV_COLUMN));
+            TransformFunction transformFunction = TransformFunctionFactory.get(expression, _dataSourceMap);
+            Assert.assertEquals(
+                    transformFunction.getResultMetadata().getDataType(),
+                    testCase.getValue(),
+                    String.format("Expecting %s data type for lookup column: '%s'",
+                            testCase.getKey(), testCase.getValue()));
+        }
+    }
+
+    @Test
+    public void basicLookupTests() throws Exception {
+        // Lookup col: StringSV
+        // PK: [String]
+        ExpressionContext expression = QueryContextConverterUtils.getExpression(String
+                .format("lookup('baseballTeams','teamName','teamID',%s)", STRING_SV_COLUMN));
+        TransformFunction transformFunction = TransformFunctionFactory.get(expression, _dataSourceMap);
+        String[] expectedStringValues = new String[NUM_ROWS];
+        for (int i=0; i<NUM_ROWS; i++) {
+            expectedStringValues[i] = String.format("teamName_for_[%s]", _stringSVValues[i]);
+        }
+        testTransformFunction(transformFunction, expectedStringValues);
+
+        // Lookup col: IntSV
+        // PK: [String]
+        expression = QueryContextConverterUtils.getExpression(String
+                .format("lookup('baseballTeams','teamInteger','teamID',%s)", STRING_SV_COLUMN));
+        transformFunction = TransformFunctionFactory.get(expression, _dataSourceMap);
+        int[] expectedIntValues = new int[NUM_ROWS];
+        for (int i=0; i<NUM_ROWS; i++) {
+            expectedIntValues[i] = (new PrimaryKey(new Object[] {_stringSVValues[i]})).hashCode();
+        }
+        testTransformFunction(transformFunction, expectedIntValues);
+
+        // Lookup col: DoubleSV
+        // PK: [String]
+        expression = QueryContextConverterUtils.getExpression(String
+                .format("lookup('baseballTeams','teamDouble','teamID',%s)", STRING_SV_COLUMN));
+        transformFunction = TransformFunctionFactory.get(expression, _dataSourceMap);
+        double[] expectedDoubleValues = new double[NUM_ROWS];
+        for (int i=0; i<NUM_ROWS; i++) {
+            expectedDoubleValues[i] = (double)(new PrimaryKey(new Object[] {_stringSVValues[i]})).hashCode();
+        }
+        testTransformFunction(transformFunction, expectedDoubleValues);
+    }
+
+    @Test
+    public void multiValueLookupTests() throws Exception {
+        // Lookup col: StringMV
+        // PK: [String]
+        ExpressionContext expression = QueryContextConverterUtils.getExpression(String
+                .format("lookup('baseballTeams','teamName_MV','teamID',%s)", STRING_SV_COLUMN));
+        TransformFunction transformFunction = TransformFunctionFactory.get(expression, _dataSourceMap);
+        String[][] expectedStringMVValues = new String[NUM_ROWS][];
+        for (int i=0; i<NUM_ROWS; i++) {
+            expectedStringMVValues[i] = new String[]{
+                    String.format("teamName_for_[%s]_1", _stringSVValues[i]),
+                    String.format("teamName_for_[%s]_2", _stringSVValues[i]),
+            };
+        }
+        testTransformFunctionMV(transformFunction, expectedStringMVValues);
+
+        // Lookup col: IntegerMV
+        // PK: [String]
+        expression = QueryContextConverterUtils.getExpression(String
+                .format("lookup('baseballTeams','teamInteger_MV','teamID',%s)", STRING_SV_COLUMN));
+        transformFunction = TransformFunctionFactory.get(expression, _dataSourceMap);
+        int[][] expectedIntegerMVValues = new int[NUM_ROWS][0];
+        for (int i=0; i<NUM_ROWS; i++) {
+            expectedIntegerMVValues[i] = new int[]{
+                    (new PrimaryKey(new Object[] {_stringSVValues[i]})).hashCode(),
+                    (new PrimaryKey(new Object[] {_stringSVValues[i]})).hashCode(),
+            };
+        }
+        testTransformFunctionMV(transformFunction, expectedIntegerMVValues);
+
+        // Lookup col: DoubleMV
+        // PK: [String]
+        expression = QueryContextConverterUtils.getExpression(String
+                .format("lookup('baseballTeams','teamDouble_MV','teamID',%s)", STRING_SV_COLUMN));
+        transformFunction = TransformFunctionFactory.get(expression, _dataSourceMap);
+        double[][] expectedDoubleMVValues = new double[NUM_ROWS][0];
+        for (int i=0; i<NUM_ROWS; i++) {
+            expectedDoubleMVValues[i] = new double[]{
+                    (double)(new PrimaryKey(new Object[] {_stringSVValues[i]})).hashCode(),
+                    (double)(new PrimaryKey(new Object[] {_stringSVValues[i]})).hashCode(),
+            };
+        }
+        testTransformFunctionMV(transformFunction, expectedDoubleMVValues);
+    }
 }

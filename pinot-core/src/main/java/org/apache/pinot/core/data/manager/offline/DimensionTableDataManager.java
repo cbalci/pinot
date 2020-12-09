@@ -43,14 +43,14 @@ import org.apache.pinot.spi.data.readers.PrimaryKey;
 
 /**
  * Dimension Table is a special type of OFFLINE table which is assigned to all servers
- * and is used to execute a LOOKUP Transform Function. They should be small enough to
- * easily fit in memory (<200MB).
+ * in a tenant and is used to execute a LOOKUP Transform Function. Content should be small
+ * enough to easily fit in memory (<200MB).
  *
  * DimensionTableDataManager uses Registry of Singletons pattern to store one instance per table
  * which can be accessed via 'getInstanceByTableName' static method.
  */
 public class DimensionTableDataManager extends OfflineTableDataManager {
-  // Store singletons per table in this map
+  // Storing singletons per table in a HashMap
   private static final Map<String, DimensionTableDataManager> _instances = new ConcurrentHashMap<>();
 
   private DimensionTableDataManager() {}
@@ -103,6 +103,17 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
     } catch (Exception e) {
       throw new RuntimeException(
           String.format("Error loading lookup table: %s", getTableName()),e);
+    }
+  }
+
+  @Override
+  public void removeSegment(String segmentName) {
+    super.removeSegment(segmentName);
+    try {
+      prepareLookupTable();
+      _logger.info("Successfully removed segment and reloaded lookup table for {}", getTableName());
+    } catch (Exception e) {
+      _logger.error("Error reloading lookup table after segment remove for table {}", getTableName());
     }
   }
 
