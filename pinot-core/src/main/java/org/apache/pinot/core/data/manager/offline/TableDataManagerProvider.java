@@ -28,7 +28,7 @@ import org.apache.pinot.core.data.manager.TableDataManager;
 import org.apache.pinot.core.data.manager.config.InstanceDataManagerConfig;
 import org.apache.pinot.core.data.manager.config.TableDataManagerConfig;
 import org.apache.pinot.core.data.manager.realtime.RealtimeTableDataManager;
-import org.apache.pinot.spi.config.table.TableDataManagerType;
+import org.apache.pinot.spi.config.table.TableType;
 
 
 /**
@@ -51,20 +51,17 @@ public class TableDataManagerProvider {
       @Nonnull String instanceId, @Nonnull ZkHelixPropertyStore<ZNRecord> propertyStore,
       @Nonnull ServerMetrics serverMetrics, @Nonnull HelixManager helixManager) {
     TableDataManager tableDataManager;
-    switch (TableDataManagerType.valueOf(tableDataManagerConfig.getTableDataManagerType())) {
+    switch (TableType.valueOf(tableDataManagerConfig.getTableDataManagerType())) {
       case OFFLINE:
-        // TODO remove: temporary hack for testing
-        if (tableDataManagerConfig.getTableName().equals("dimBaseballTeams_OFFLINE")) {
-          tableDataManager = DimensionTableDataManager.createInstanceByTableName(tableDataManagerConfig.getTableName());
+        if (tableDataManagerConfig.isDimTable()) {
+          tableDataManager =
+              DimensionTableDataManager.createInstanceByTableName(tableDataManagerConfig.getTableName());
           break;
         }
         tableDataManager = new OfflineTableDataManager();
         break;
       case REALTIME:
         tableDataManager = new RealtimeTableDataManager(_segmentBuildSemaphore);
-        break;
-      case DIMENSION:
-        tableDataManager = DimensionTableDataManager.createInstanceByTableName(tableDataManagerConfig.getTableName());
         break;
       default:
         throw new IllegalStateException();
