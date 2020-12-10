@@ -21,6 +21,7 @@ package org.apache.pinot.core.data.manager.offline;
 import com.yammer.metrics.core.MetricsRegistry;
 import java.io.File;
 import java.net.URL;
+import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixManager;
@@ -28,6 +29,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.pinot.common.metrics.ServerMetrics;
 import org.apache.pinot.common.segment.ReadMode;
+import org.apache.pinot.core.data.manager.SegmentDataManager;
 import org.apache.pinot.core.data.manager.config.TableDataManagerConfig;
 import org.apache.pinot.core.indexsegment.generator.SegmentGeneratorConfig;
 import org.apache.pinot.core.indexsegment.generator.SegmentVersion;
@@ -36,6 +38,7 @@ import org.apache.pinot.core.segment.creator.impl.SegmentCreationDriverFactory;
 import org.apache.pinot.core.segment.index.loader.IndexLoadingConfig;
 import org.apache.pinot.core.segment.index.loader.LoaderTest;
 import org.apache.pinot.segments.v1.creator.SegmentTestUtils;
+import org.apache.pinot.spi.data.FieldSpec;
 import org.apache.pinot.spi.data.readers.GenericRow;
 import org.apache.pinot.spi.data.readers.PrimaryKey;
 import org.testng.Assert;
@@ -125,7 +128,7 @@ public class DimensionTableDataManagerTest {
   }
 
   @Test
-  public void lookupTableLoadTests() throws Exception {
+  public void lookupTests() throws Exception {
     DimensionTableDataManager mgr = makeTestableManager();
 
     // try fetching data BEFORE loading segment
@@ -138,5 +141,20 @@ public class DimensionTableDataManagerTest {
     resp = mgr.lookupRowByPrimaryKey(new PrimaryKey(new String[]{"SF"}));
     Assert.assertNotNull(resp, "Should return response after segment load");
     Assert.assertEquals(resp.getValue("teamName"), "San Francisco Giants");
+
+    // Confirm we can get FieldSpec for loaded tables columns.
+    FieldSpec spec = mgr.getColumnFieldSpec("teamName");
+    Assert.assertNotNull(spec, "Should return spec for existing column");
+    Assert.assertEquals(spec.getDataType(), FieldSpec.DataType.STRING, "Should return correct data type for teamName column");
+
+    // Remove the segment
+    List<SegmentDataManager> segmentManagers = mgr.acquireAllSegments();
+    Assert.assertEquals(segmentManagers.size(), 1, "Should have exactly one segment manager");
+    SegmentDataManager segMgr = segmentManagers.get(0);
+    String segmentName = segMgr.getSegmentName();
+    mgr.removeSegment(segmentName);
+    // confirm table is cleaned up
+    resp = mgr.lookupRowByPrimaryKey(new PrimaryKey(new String[]{"SF"}));
+    Assert.assertNull(resp, "Response should be null if no segment is loaded");
   }
 }

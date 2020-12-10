@@ -40,14 +40,13 @@ import org.apache.pinot.spi.data.Schema;
 import org.apache.pinot.spi.data.readers.GenericRow;
 import org.apache.pinot.spi.data.readers.PrimaryKey;
 
-
 /**
  * Dimension Table is a special type of OFFLINE table which is assigned to all servers
  * in a tenant and is used to execute a LOOKUP Transform Function. Content should be small
- * enough to easily fit in memory (<200MB).
+ * enough to easily fit in memory.
  *
  * DimensionTableDataManager uses Registry of Singletons pattern to store one instance per table
- * which can be accessed via 'getInstanceByTableName' static method.
+ * which can be accessed via `getInstanceByTableName` static method.
  */
 public class DimensionTableDataManager extends OfflineTableDataManager {
   // Storing singletons per table in a HashMap
@@ -70,8 +69,9 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
     return _instances.get(tableName);
   }
 
-  // DimensionTableDataManager Instance properties
-  //
+  /*
+   * DimensionTableDataManager Instance Properties/Methods
+   */
 
   // _lookupTable is a HashMap used for fetching records from a table given the primary key
   private final Map<PrimaryKey, GenericRow> _lookupTable = new HashMap<>();
@@ -90,7 +90,7 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
     Preconditions.checkState(_tableSchema != null, "Failed to find schema for table: %s", _tableNameWithType);
     _primaryKeyColumns = _tableSchema.getPrimaryKeyColumns();
     Preconditions.checkState(!CollectionUtils.isEmpty(_primaryKeyColumns),
-        "Primary key columns must be configured for dimension tables");
+        "Primary key columns must be configured for dimension table: %s", _tableNameWithType);
   }
 
   @Override
@@ -98,7 +98,7 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
       throws Exception {
     super.addSegment(indexDir, indexLoadingConfig);
     try {
-      prepareLookupTable();
+      loadLookupTable();
       _logger.info("Successfully loaded lookup table for {}", getTableName());
     } catch (Exception e) {
       throw new RuntimeException(
@@ -110,21 +110,29 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
   public void removeSegment(String segmentName) {
     super.removeSegment(segmentName);
     try {
-      prepareLookupTable();
+      loadLookupTable();
       _logger.info("Successfully removed segment and reloaded lookup table for {}", getTableName());
     } catch (Exception e) {
       _logger.error("Error reloading lookup table after segment remove for table {}", getTableName());
     }
   }
 
-  private void prepareLookupTable() throws Exception {
+  /*
+   * `loadLookupTable()` reads contents of the DimensionTable into _lookupTable HashMap for fast lookup.
+   */
+  private void loadLookupTable() throws Exception {
     _lookupTableWriteLock.lock();
     try {
       List<SegmentDataManager> segmentManagers = acquireAllSegments();
-      List<File> indexDirs = new ArrayList<>();
+      if (segmentManagers.size() == 0) {
+        _lookupTable.clear();
+        return;
+      }
 
+      List<File> indexDirs = new ArrayList<>();
       for (SegmentDataManager segmentManager: segmentManagers) {
         IndexSegment indexSegment = segmentManager.getSegment();
+        System.out.println(indexSegment.getSegmentName());
         indexDirs.add(indexSegment.getSegmentMetadata().getIndexDir());
       }
       MultiplePinotSegmentRecordReader reader = new MultiplePinotSegmentRecordReader(indexDirs);
