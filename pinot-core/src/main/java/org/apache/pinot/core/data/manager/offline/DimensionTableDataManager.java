@@ -29,6 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.ThreadSafe;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.pinot.common.metadata.ZKMetadataProvider;
 import org.apache.pinot.core.data.manager.SegmentDataManager;
@@ -42,12 +44,14 @@ import org.apache.pinot.spi.data.readers.PrimaryKey;
 
 /**
  * Dimension Table is a special type of OFFLINE table which is assigned to all servers
- * in a tenant and is used to execute a LOOKUP Transform Function. Content should be small
+ * in a tenant and is used to execute a LOOKUP Transform Function. DimensionTableDataManager
+ * loads the contents into a HashMap for faster access thus the size should be small
  * enough to easily fit in memory.
  *
  * DimensionTableDataManager uses Registry of Singletons pattern to store one instance per table
  * which can be accessed via `getInstanceByTableName` static method.
  */
+@ThreadSafe
 public class DimensionTableDataManager extends OfflineTableDataManager {
   // Storing singletons per table in a HashMap
   private static final Map<String, DimensionTableDataManager> _instances = new ConcurrentHashMap<>();
@@ -73,12 +77,13 @@ public class DimensionTableDataManager extends OfflineTableDataManager {
    * DimensionTableDataManager Instance Properties/Methods
    */
 
-  // _lookupTable is a HashMap used for fetching records from a table given the primary key
-  private final Map<PrimaryKey, GenericRow> _lookupTable = new HashMap<>();
   private final ReadWriteLock _rwl = new ReentrantReadWriteLock();
   private final Lock _lookupTableReadLock = _rwl.readLock();
   private final Lock _lookupTableWriteLock = _rwl.writeLock();
 
+  // _lookupTable is a HashMap used for storing/serving records for a table keyed by table PK
+  @GuardedBy("_rwl")
+  private final Map<PrimaryKey, GenericRow> _lookupTable = new HashMap<>();
   private Schema _tableSchema;
   private List<String> _primaryKeyColumns;
 
