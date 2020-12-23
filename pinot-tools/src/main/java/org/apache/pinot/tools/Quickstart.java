@@ -158,7 +158,29 @@ public class Quickstart {
     FileUtils.copyURLToFile(resource, tableConfigFile);
 
     QuickstartTableRequest request = new QuickstartTableRequest(baseDir.getAbsolutePath());
-    final QuickstartRunner runner = new QuickstartRunner(Lists.newArrayList(request), 1, 1, 1, dataDir);
+
+    File dimBaseDir = new File(quickstartTmpDir, "dimBaseballTeams");
+    File dimSchemaFile = new File(dimBaseDir, "dimBaseballTeams_schema.json");
+    File dimDataFile = new File(dataDir, "dimBaseballTeams_data.csv");
+    File dimTableConfigFile = new File(dimBaseDir, "dimBaseballTeams_offline_table_config.json");
+    File dimIngestionJobSpecFile = new File(dimBaseDir, "ingestionJobSpec.yaml");
+
+    URL dimResource = classLoader.getResource("examples/batch/dimBaseballTeams/dimBaseballTeams_schema.json");
+    com.google.common.base.Preconditions.checkNotNull(dimResource);
+    FileUtils.copyURLToFile(dimResource, dimSchemaFile);
+    dimResource = classLoader.getResource("examples/batch/dimBaseballTeams/rawdata/dimBaseballTeams_data.csv");
+    com.google.common.base.Preconditions.checkNotNull(dimResource);
+    FileUtils.copyURLToFile(dimResource, dimDataFile);
+    dimResource = classLoader.getResource("examples/batch/dimBaseballTeams/ingestionJobSpec.yaml");
+    com.google.common.base.Preconditions.checkNotNull(dimResource);
+    FileUtils.copyURLToFile(dimResource, dimIngestionJobSpecFile);
+    dimResource = classLoader.getResource("examples/batch/dimBaseballTeams/dimBaseballTeams_offline_table_config.json");
+    com.google.common.base.Preconditions.checkNotNull(dimResource);
+    FileUtils.copyURLToFile(dimResource, dimTableConfigFile);
+
+    QuickstartTableRequest dimRequest = new QuickstartTableRequest(dimBaseDir.getAbsolutePath());
+
+    final QuickstartRunner runner = new QuickstartRunner(Lists.newArrayList(request, dimRequest), 1, 1, 1, dataDir);
 
     printStatus(Color.CYAN, "***** Starting Zookeeper, controller, broker and server *****");
     runner.startAll();
