@@ -23,6 +23,8 @@ import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.pinot.common.utils.ZkStarter;
 import org.apache.pinot.spi.config.table.TableConfig;
@@ -54,6 +56,13 @@ public class HybridQuickstart {
     // E.g. Kafka related libs are coming from pinot-kafka-* lib, avro libs are coming from pinot-avro lib.
     PluginManager.get().init();
     new HybridQuickstart().execute();
+  }
+
+  public Map<String, Object> getConfigOverrides() {
+    Map<String, Object> overrides = new HashMap<>();
+    overrides.put("pinot.server.grpc.enable", "true");
+    overrides.put("pinot.server.grpc.port", "8090");
+    return overrides;
   }
 
   private QuickstartTableRequest prepareTableRequest(File baseDir)
