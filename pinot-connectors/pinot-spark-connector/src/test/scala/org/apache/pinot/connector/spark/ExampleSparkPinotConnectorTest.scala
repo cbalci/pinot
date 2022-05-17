@@ -36,14 +36,14 @@ object ExampleSparkPinotConnectorTest extends Logging {
       .master("local")
       .getOrCreate()
 
-    readOffline()
-    readHybrid()
-    readHybridWithSpecificSchema()
-    readHybridWithFilters()
+//    readOffline()
+//    readHybrid()
+//    readHybridWithSpecificSchema()
+//    readHybridWithFilters()
     readHybridViaGrpc()
-    readHybridWithFiltersViaGrpc()
-    readRealtimeWithSelectionColumns()
-    applyJustSomeFilters()
+//    readHybridWithFiltersViaGrpc()
+//    readRealtimeWithSelectionColumns()
+//    applyJustSomeFilters()
   }
 
   def readOffline()(implicit spark: SparkSession): Unit = {
@@ -143,7 +143,7 @@ object ExampleSparkPinotConnectorTest extends Logging {
     val data = spark.read
       .format("pinot")
       .option("table", "airlineStats")
-      .option("tableType", "offline")
+      .option("tableType", "OFFLINE")
       .option("useGrpcServer", "true")
       .load()
 
