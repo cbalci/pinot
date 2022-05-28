@@ -108,10 +108,6 @@
               <groupId>org.scala-lang</groupId>
               <artifactId>scala-library</artifactId>
             </exclusion>
-            <exclusion>
-              <groupId>io.netty</groupId>
-              <artifactId>*</artifactId>
-            </exclusion>
           </exclusions>
         </dependency>
         <dependency>
@@ -190,20 +186,6 @@
                   <goal>shade</goal>
                 </goals>
                 <configuration>
-                  <artifactSet>
-                    <excludes>
-                      <exclude>io.netty:netty</exclude>
-                      <exclude>io.netty:netty-all</exclude>
-                      <exclude>io.netty:netty-handler</exclude>
-                      <exclude>io.netty:netty-transport</exclude>
-                      <exclude>io.netty:netty-common</exclude>
-                      <exclude>io.netty:netty-transport-native-epoll</exclude>
-                      <exclude>io.netty:netty-transport-native-unix-common</exclude>
-                      <exclude>io.netty:netty-buffer</exclude>
-                      <exclude>io.netty:netty-resolver</exclude>
-                      <exclude>io.netty:netty-codec</exclude>
-                    </excludes>
-                  </artifactSet>
                   <relocations>
                     <relocation>
                       <pattern>com</pattern>
@@ -337,10 +319,6 @@
   </build>
 
   <dependencies>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-    </dependency>
     <dependency>
       <groupId>org.apache.pinot</groupId>
       <artifactId>pinot-common</artifactId>
