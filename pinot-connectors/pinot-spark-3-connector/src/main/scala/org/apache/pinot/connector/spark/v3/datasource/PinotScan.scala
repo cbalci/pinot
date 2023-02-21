@@ -24,15 +24,22 @@ import org.apache.pinot.connector.spark.common.query.SelectionQuery
 import org.apache.pinot.connector.spark.common.reader.PinotAbstractPartitionReader
 import org.apache.pinot.connector.spark.common.{InstanceInfo, PinotClusterClient, PinotDataSourceReadOptions}
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReader, PartitionReaderFactory, Scan}
+import org.apache.spark.sql.connector.read.{
+  Batch,
+  InputPartition,
+  PartitionReader,
+  PartitionReaderFactory,
+  Scan
+}
 import org.apache.spark.sql.types.StructType
 
 import scala.collection.mutable.Map
 
-class PinotScan(query: SelectionQuery,
-                schema: StructType,
-                readParameters: PinotDataSourceReadOptions,
-                ) extends Scan with Batch {
+class PinotScan(
+    query: SelectionQuery,
+    schema: StructType,
+    readParameters: PinotDataSourceReadOptions)
+  extends Scan with Batch {
 
   override def readSchema(): StructType = schema
 

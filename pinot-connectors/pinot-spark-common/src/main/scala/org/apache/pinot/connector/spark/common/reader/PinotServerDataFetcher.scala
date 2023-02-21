@@ -128,6 +128,7 @@ private[reader] class PinotServerDataFetcher(
 }
 
 object PinotServerDataFetcher {
+
   def apply(
       partitionId: Int,
       pinotSplit: PinotSplit,

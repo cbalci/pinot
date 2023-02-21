@@ -18,9 +18,9 @@
  */
 package org.apache.pinot.connector.spark
 
-import io.circe.{Decoder, parser}
-
 import java.util.Optional
+
+import io.circe.{Decoder, parser}
 
 package object common {
 

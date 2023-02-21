@@ -18,6 +18,7 @@
  */
 package org.apache.pinot.connector.spark.datasource
 
+import java.util.{List => JList}
 
 import org.apache.pinot.connector.spark.common.{InstanceInfo, PinotClusterClient, PinotDataSourceReadOptions}
 import org.apache.pinot.connector.spark.common.query.SelectionQueryGenerator
@@ -26,12 +27,16 @@ import org.apache.pinot.connector.spark.datasource.query.FilterPushDown
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.sources.v2.DataSourceOptions
-import org.apache.spark.sql.sources.v2.reader.{DataSourceReader, InputPartition, SupportsPushDownFilters, SupportsPushDownRequiredColumns}
+import org.apache.spark.sql.sources.v2.reader.{
+  DataSourceReader,
+  InputPartition,
+  SupportsPushDownFilters,
+  SupportsPushDownRequiredColumns
+}
 import org.apache.spark.sql.types._
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.Map
-import java.util.{List => JList}
 
 /**
  * Spark-Pinot datasource reader to read metadata and create partition splits.
