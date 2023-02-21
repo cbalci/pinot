@@ -18,9 +18,9 @@
  */
 package org.apache.pinot.connector.spark.v3.datasource.query
 
-import org.apache.spark.sql.sources._
-
 import java.sql.{Date, Timestamp}
+
+import org.apache.spark.sql.sources._
 
 /**
  * Helper methods to find valid filters, and convert spark filters to SQL where clause.

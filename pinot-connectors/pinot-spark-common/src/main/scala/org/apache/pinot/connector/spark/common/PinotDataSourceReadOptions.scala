@@ -95,11 +95,11 @@ object PinotDataSourceReadOptions {
 
 // tableType None if table is hybrid
 private[pinot] case class PinotDataSourceReadOptions(
-                                                      tableName: String,
-                                                      tableType: Option[TableType],
-                                                      controller: String,
-                                                      broker: String,
-                                                      usePushDownFilters: Boolean,
-                                                      segmentsPerSplit: Int,
-                                                      pinotServerTimeoutMs: Long,
-                                                      useGrpcServer: Boolean)
+    tableName: String,
+    tableType: Option[TableType],
+    controller: String,
+    broker: String,
+    usePushDownFilters: Boolean,
+    segmentsPerSplit: Int,
+    pinotServerTimeoutMs: Long,
+    useGrpcServer: Boolean)

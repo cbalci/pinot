@@ -45,8 +45,8 @@ private[pinot] object TypeConverter {
 
   /** Convert Pinot DataTable to Seq of InternalRow */
   def pinotDataTableToInternalRows(
-                                    dataTable: DataTable,
-                                    sparkSchema: StructType): Seq[InternalRow] = {
+      dataTable: DataTable,
+      sparkSchema: StructType): Seq[InternalRow] = {
     val dataTableColumnNames = dataTable.getDataSchema.getColumnNames
     (0 until dataTable.getNumberOfRows).map { rowIndex =>
       // spark schema is used to ensure columns order
@@ -66,10 +66,10 @@ private[pinot] object TypeConverter {
   }
 
   private def readPinotColumnData(
-                                   dataTable: DataTable,
-                                   columnDataType: ColumnDataType,
-                                   rowIndex: Int,
-                                   colIndex: Int): Any = columnDataType match {
+     dataTable: DataTable,
+     columnDataType: ColumnDataType,
+     rowIndex: Int,
+     colIndex: Int): Any = columnDataType match {
     // single column types
     case ColumnDataType.STRING =>
       UTF8String.fromString(dataTable.getString(rowIndex, colIndex))

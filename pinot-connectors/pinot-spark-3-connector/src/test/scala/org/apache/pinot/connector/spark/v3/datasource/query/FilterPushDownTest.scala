@@ -18,10 +18,10 @@
  */
 package org.apache.pinot.connector.spark.v3.datasource.query
 
+import java.sql.{Date, Timestamp}
+
 import org.apache.pinot.connector.spark.v3.datasource.BaseTest
 import org.apache.spark.sql.sources._
-
-import java.sql.{Date, Timestamp}
 
 /**
  * Test filter conversions => Spark filter to SQL where clause
