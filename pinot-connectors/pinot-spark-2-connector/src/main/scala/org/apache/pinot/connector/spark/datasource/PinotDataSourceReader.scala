@@ -21,7 +21,7 @@ package org.apache.pinot.connector.spark.datasource
 import java.util.{List => JList}
 
 import org.apache.pinot.connector.spark.common.{InstanceInfo, PinotClusterClient, PinotDataSourceReadOptions}
-import org.apache.pinot.connector.spark.common.query.SelectionQueryGenerator
+import org.apache.pinot.connector.spark.common.query.ScanQueryGenerator
 import org.apache.pinot.connector.spark.common.partition.PinotSplitter
 import org.apache.pinot.connector.spark.datasource.query.FilterPushDown
 import org.apache.spark.sql.catalyst.InternalRow
@@ -73,7 +73,7 @@ class PinotDataSourceReader(options: DataSourceOptions, userSchema: Option[Struc
       }
 
     val whereCondition = FilterPushDown.compileFiltersToSqlWhereClause(this.acceptedFilters)
-    val generatedSQLs = SelectionQueryGenerator.generate(
+    val generatedSQLs = ScanQueryGenerator.generate(
       readParameters.tableName,
       readParameters.tableType,
       timeBoundaryInfo,

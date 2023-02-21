@@ -24,7 +24,7 @@ import org.apache.pinot.spi.config.table.TableType
 /**
  * Generate realtime and offline SQL queries for specified table with given columns and filters.
  */
-private[pinot] class SelectionQueryGenerator(
+private[pinot] class ScanQueryGenerator(
     tableName: String,
     tableType: Option[TableType],
     timeBoundaryInfo: Option[TimeBoundaryInfo],
@@ -32,10 +32,10 @@ private[pinot] class SelectionQueryGenerator(
     whereClause: Option[String]) {
   private val columnsExpression = columnsAsExpression()
 
-  def generateSQLs(): SelectionQuery = {
+  def generateSQLs(): ScanQuery = {
     val offlineSelectQuery = buildSelectQuery(TableType.OFFLINE)
     val realtimeSelectQuery = buildSelectQuery(TableType.REALTIME)
-    SelectionQuery(
+    ScanQuery(
       tableName,
       tableType,
       offlineSelectQuery,
@@ -78,14 +78,14 @@ private[pinot] class SelectionQueryGenerator(
 
 }
 
-private[pinot] object SelectionQueryGenerator {
+private[pinot] object ScanQueryGenerator {
   def generate(
       tableName: String,
       tableType: Option[TableType],
       timeBoundaryInfo: Option[TimeBoundaryInfo],
       columns: Array[String],
-      whereClause: Option[String]): SelectionQuery = {
-    new SelectionQueryGenerator(tableName, tableType, timeBoundaryInfo, columns, whereClause)
+      whereClause: Option[String]): ScanQuery = {
+    new ScanQueryGenerator(tableName, tableType, timeBoundaryInfo, columns, whereClause)
       .generateSQLs()
   }
 }

@@ -20,7 +20,7 @@ package org.apache.pinot.connector.spark.v3.datasource
 
 import org.apache.pinot.common.datatable.DataTable
 import org.apache.pinot.connector.spark.common.partition.{PinotSplit, PinotSplitter}
-import org.apache.pinot.connector.spark.common.query.SelectionQuery
+import org.apache.pinot.connector.spark.common.query.ScanQuery
 import org.apache.pinot.connector.spark.common.reader.PinotAbstractPartitionReader
 import org.apache.pinot.connector.spark.common.{InstanceInfo, PinotClusterClient, PinotDataSourceReadOptions}
 import org.apache.spark.sql.catalyst.InternalRow
@@ -36,7 +36,7 @@ import org.apache.spark.sql.types.StructType
 import scala.collection.mutable.Map
 
 class PinotScan(
-    query: SelectionQuery,
+    query: ScanQuery,
     schema: StructType,
     readParameters: PinotDataSourceReadOptions)
   extends Scan with Batch {

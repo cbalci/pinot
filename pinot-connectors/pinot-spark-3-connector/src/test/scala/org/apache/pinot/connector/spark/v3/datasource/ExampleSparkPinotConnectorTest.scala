@@ -37,15 +37,15 @@ object ExampleSparkPinotConnectorTest extends Logging {
       .getOrCreate()
 
     readOffline()
-    readHybrid()
+//    readHybrid()
 //    readHybridWithSpecificSchema()
-    readHybridWithFilters()
-    readHybridViaGrpc()
-    readRealtimeViaGrpc()
-    readRealtimeWithFilterViaGrpc()
-    readHybridWithFiltersViaGrpc()
-    readRealtimeWithSelectionColumns()
-    applyJustSomeFilters()
+//    readHybridWithFilters()
+//    readHybridViaGrpc()
+//    readRealtimeViaGrpc()
+//    readRealtimeWithFilterViaGrpc()
+//    readHybridWithFiltersViaGrpc()
+//    readRealtimeWithSelectionColumns()
+//    applyJustSomeFilters()
   }
 
   def readOffline()(implicit spark: SparkSession): Unit = {

@@ -19,7 +19,7 @@
 package org.apache.pinot.connector.spark.v3.datasource
 
 import org.apache.pinot.connector.spark.common.PinotDataSourceReadOptions
-import org.apache.pinot.connector.spark.common.query.SelectionQuery
+import org.apache.pinot.connector.spark.common.query.ScanQuery
 import org.apache.pinot.spi.config.table.TableType
 import org.apache.spark.sql.connector.read.PartitionReaderFactory
 import org.apache.spark.sql.types.{IntegerType, StructField, StructType}
@@ -34,13 +34,13 @@ class PinotScanTest extends BaseTest {
     val schema = StructType(
       Seq(StructField("myCol", IntegerType))
     )
-    val selectionQuery = SelectionQuery(
+    val scanQuery = ScanQuery(
       "myTable",
       Some(TableType.OFFLINE),
       "select * from myTable",
       "")
 
-    val scan = new PinotScan(selectionQuery, schema, readOptions)
+    val scan = new PinotScan(scanQuery, schema, readOptions)
     val readerFactory = scan.createReaderFactory()
 
     // assert PinotScan creates a PartitionReaderFactory

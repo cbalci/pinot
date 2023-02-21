@@ -24,7 +24,7 @@ import org.apache.pinot.spi.config.table.TableType
 /**
  * Test SQL query generation from spark push down filters, selection columns etc.
  */
-class SelectionQueryGeneratorTest extends BaseTest {
+class ScanQueryGeneratorTest extends BaseTest {
   private val columns = Array("c1, c2")
   private val tableName = "tbl"
   private val tableType = Some(TableType.OFFLINE)
@@ -33,7 +33,7 @@ class SelectionQueryGeneratorTest extends BaseTest {
 
   test("Queries should be created with given filters") {
     val pinotQueries =
-      SelectionQueryGenerator.generate(tableName, tableType, None, columns, whereClause)
+      ScanQueryGenerator.generate(tableName, tableType, None, columns, whereClause)
     val expectedRealtimeQuery =
       s"SELECT c1, c2 FROM ${tableName}_REALTIME WHERE ${whereClause.get} $limit"
     val expectedOfflineQuery =
@@ -45,7 +45,7 @@ class SelectionQueryGeneratorTest extends BaseTest {
 
   test("Time boundary info should be added to existing where clause") {
     val timeBoundaryInfo = TimeBoundaryInfo("timeCol", "12345")
-    val pinotQueries = SelectionQueryGenerator
+    val pinotQueries = ScanQueryGenerator
       .generate(tableName, tableType, Some(timeBoundaryInfo), columns, whereClause)
 
     val realtimeWhereClause = s"${whereClause.get} AND timeCol >= 12345"
@@ -61,7 +61,7 @@ class SelectionQueryGeneratorTest extends BaseTest {
 
   test("Time boundary info should be added to where clause") {
     val timeBoundaryInfo = TimeBoundaryInfo("timeCol", "12345")
-    val pinotQueries = SelectionQueryGenerator
+    val pinotQueries = ScanQueryGenerator
       .generate(tableName, tableType, Some(timeBoundaryInfo), columns, None)
 
     val realtimeWhereClause = s"timeCol >= 12345"
@@ -76,7 +76,7 @@ class SelectionQueryGeneratorTest extends BaseTest {
   }
 
   test("Selection query should be created with '*' column expressions without filters") {
-    val pinotQueries = SelectionQueryGenerator
+    val pinotQueries = ScanQueryGenerator
       .generate(tableName, tableType, None, Array.empty, None)
 
     val expectedRealtimeQuery =

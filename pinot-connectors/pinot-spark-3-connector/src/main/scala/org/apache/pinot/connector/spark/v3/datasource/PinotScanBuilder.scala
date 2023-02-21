@@ -18,7 +18,7 @@
  */
 package org.apache.pinot.connector.spark.v3.datasource
 
-import org.apache.pinot.connector.spark.common.query.SelectionQueryGenerator
+import org.apache.pinot.connector.spark.common.query.ScanQueryGenerator
 import org.apache.pinot.connector.spark.common.{PinotClusterClient, PinotDataSourceReadOptions}
 import org.apache.pinot.connector.spark.v3.datasource.query.FilterPushDown
 import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownFilters, SupportsPushDownRequiredColumns}
@@ -42,7 +42,7 @@ class PinotScanBuilder(readParameters: PinotDataSourceReadOptions)
       }
 
     val whereCondition = FilterPushDown.compileFiltersToSqlWhereClause(this.acceptedFilters)
-    val generatedSQLs = SelectionQueryGenerator.generate(
+    val scanQuery = ScanQueryGenerator.generate(
       readParameters.tableName,
       readParameters.tableType,
       timeBoundaryInfo,
@@ -50,7 +50,7 @@ class PinotScanBuilder(readParameters: PinotDataSourceReadOptions)
       whereCondition
     )
 
-    new PinotScan(generatedSQLs, currentSchema, readParameters)
+    new PinotScan(scanQuery, currentSchema, readParameters)
   }
 
   override def pushFilters(filters: Array[Filter]): Array[Filter] = {

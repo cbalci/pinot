@@ -20,7 +20,7 @@ package org.apache.pinot.connector.spark.common.query
 
 import org.apache.pinot.spi.config.table.TableType
 
-private[pinot] case class SelectionQuery(
+private[pinot] case class ScanQuery(
     rawTableName: String,
     tableType: Option[TableType],
     offlineSelectQuery: String,

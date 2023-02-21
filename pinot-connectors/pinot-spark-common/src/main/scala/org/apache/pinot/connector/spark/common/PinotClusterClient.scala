@@ -20,7 +20,7 @@ package org.apache.pinot.connector.spark.common
 
 import io.circe.Decoder
 import io.circe.generic.auto._
-import org.apache.pinot.connector.spark.common.query.SelectionQuery
+import org.apache.pinot.connector.spark.common.query.ScanQuery
 import org.apache.pinot.spi.config.table.TableType
 import org.apache.pinot.spi.data.Schema
 import org.apache.pinot.spi.utils.builder.TableNameBuilder
@@ -139,22 +139,22 @@ private[pinot] object PinotClusterClient extends Logging {
    * @return realtime and/or offline routing table(s)
    */
   def getRoutingTable(brokerUrl: String,
-                      selectionQuery: SelectionQuery): Map[TableType, Map[String, List[String]]] = {
+                      scanQuery: ScanQuery): Map[TableType, Map[String, List[String]]] = {
     val routingTables =
-      if (selectionQuery.isTableOffline) {
+      if (scanQuery.isTableOffline) {
         val offlineRoutingTable =
-          getRoutingTableForQuery(brokerUrl, selectionQuery.offlineSelectQuery)
+          getRoutingTableForQuery(brokerUrl, scanQuery.offlineSelectQuery)
         Map(TableType.OFFLINE -> offlineRoutingTable)
-      } else if (selectionQuery.isTableRealtime) {
+      } else if (scanQuery.isTableRealtime) {
         val realtimeRoutingTable =
-          getRoutingTableForQuery(brokerUrl, selectionQuery.realtimeSelectQuery)
+          getRoutingTableForQuery(brokerUrl, scanQuery.realtimeSelectQuery)
         Map(TableType.REALTIME -> realtimeRoutingTable)
       } else {
         // hybrid table
         val offlineRoutingTable =
-          getRoutingTableForQuery(brokerUrl, selectionQuery.offlineSelectQuery)
+          getRoutingTableForQuery(brokerUrl, scanQuery.offlineSelectQuery)
         val realtimeRoutingTable =
-          getRoutingTableForQuery(brokerUrl, selectionQuery.realtimeSelectQuery)
+          getRoutingTableForQuery(brokerUrl, scanQuery.realtimeSelectQuery)
         Map(
           TableType.OFFLINE -> offlineRoutingTable,
           TableType.REALTIME -> realtimeRoutingTable
