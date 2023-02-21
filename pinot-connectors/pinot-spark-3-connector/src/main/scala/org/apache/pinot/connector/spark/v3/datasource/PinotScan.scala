@@ -29,7 +29,7 @@ import org.apache.spark.sql.types.StructType
 
 import scala.collection.mutable.Map
 
-class PinotScan(generatedSQLs: SelectionQuery,
+class PinotScan(query: SelectionQuery,
                 schema: StructType,
                 readParameters: PinotDataSourceReadOptions,
                 ) extends Scan with Batch {
@@ -39,7 +39,7 @@ class PinotScan(generatedSQLs: SelectionQuery,
   override def toBatch: Batch = this
 
   override def planInputPartitions(): Array[InputPartition] = {
-    val routingTable = PinotClusterClient.getRoutingTable(readParameters.broker, generatedSQLs)
+    val routingTable = PinotClusterClient.getRoutingTable(readParameters.broker, query)
 
     val instanceInfo : Map[String, InstanceInfo] = Map()
     val instanceInfoReader = (instance:String) => { // cached reader to reduce network round trips
@@ -50,7 +50,7 @@ class PinotScan(generatedSQLs: SelectionQuery,
     }
 
     PinotSplitter
-      .generatePinotSplits(generatedSQLs, routingTable, instanceInfoReader, readParameters)
+      .generatePinotSplits(query, routingTable, instanceInfoReader, readParameters)
       .zipWithIndex
       .map {
         case (pinotSplit, partitionId) =>
@@ -68,7 +68,8 @@ class PinotScan(generatedSQLs: SelectionQuery,
             override def _partitionId: Int = p.partitionId
             override def _pinotSplit: PinotSplit = p.pinotSplit
             override def _dataSourceOptions: PinotDataSourceReadOptions = p.dataSourceOptions
-            override def _translator: DataTable => Seq[InternalRow] = PinotUtils.pinotDataTableToInternalRows(_, schema)
+            override def _translator: DataTable => Seq[InternalRow] =
+              TypeConverter.pinotDataTableToInternalRows(_, schema)
           }
         case _ =>
           throw new Exception("Unknown InputPartition type. Expecting PinotInputPartition")

@@ -28,6 +28,7 @@ Detailed read model documentation is here; [Spark-Pinot Connector Read Model](do
 ## Features
 - Query realtime, offline or hybrid tables
 - Distributed, parallel scan
+- Streaming reads using gRPC (optional)
 - SQL support instead of PQL
 - Column and filter push down to optimize performance
 - Overlap between realtime and offline segments is queried exactly once for hybrid tables
@@ -57,7 +58,7 @@ val data = spark.read
 data.show(100)
 ```
 
-For more examples, see `src/test/scala/example/ExampleSparkPinotConnectorTest.scala` 
+For more examples, see `src/test/scala/.../ExampleSparkPinotConnectorTest.scala` 
 
 Spark-Pinot connector uses Spark `DatasourceV2 API`. Please check the Databricks presentation for DatasourceV2 API;
 
@@ -65,5 +66,4 @@ https://www.slideshare.net/databricks/apache-spark-data-source-v2-with-wenchen-f
 
 ## Future Works
 - Add integration tests for read operation
-- Streaming endpoint support for read operation
 - Add write support(pinot segment write logic will be changed in later versions of pinot)

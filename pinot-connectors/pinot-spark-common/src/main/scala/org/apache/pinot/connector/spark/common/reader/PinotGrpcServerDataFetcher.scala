@@ -50,9 +50,9 @@ private[reader] class PinotGrpcServerDataFetcher(pinotSplit: PinotSplit)
       .setSql(
         pinotSplit.serverAndSegments.serverType match {
           case TableType.OFFLINE =>
-            pinotSplit.generatedSQLs.offlineSelectQuery
+            pinotSplit.query.offlineSelectQuery
           case TableType.REALTIME =>
-            pinotSplit.generatedSQLs.realtimeSelectQuery
+            pinotSplit.query.realtimeSelectQuery
         }
       )
       .build()

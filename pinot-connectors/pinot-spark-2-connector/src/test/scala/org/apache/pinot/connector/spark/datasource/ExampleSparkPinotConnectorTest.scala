@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.pinot.connector.spark
+package org.apache.pinot.connector.spark.datasource
 
 import org.apache.pinot.connector.spark.common.Logging
 import org.apache.spark.sql.SparkSession

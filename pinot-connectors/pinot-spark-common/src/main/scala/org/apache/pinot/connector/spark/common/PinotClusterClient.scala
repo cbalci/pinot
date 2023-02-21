@@ -139,22 +139,22 @@ private[pinot] object PinotClusterClient extends Logging {
    * @return realtime and/or offline routing table(s)
    */
   def getRoutingTable(brokerUrl: String,
-                       generatedSQLs: SelectionQuery): Map[TableType, Map[String, List[String]]] = {
+                      selectionQuery: SelectionQuery): Map[TableType, Map[String, List[String]]] = {
     val routingTables =
-      if (generatedSQLs.isTableOffline) {
+      if (selectionQuery.isTableOffline) {
         val offlineRoutingTable =
-          getRoutingTableForQuery(brokerUrl, generatedSQLs.offlineSelectQuery)
+          getRoutingTableForQuery(brokerUrl, selectionQuery.offlineSelectQuery)
         Map(TableType.OFFLINE -> offlineRoutingTable)
-      } else if (generatedSQLs.isTableRealtime) {
+      } else if (selectionQuery.isTableRealtime) {
         val realtimeRoutingTable =
-          getRoutingTableForQuery(brokerUrl, generatedSQLs.realtimeSelectQuery)
+          getRoutingTableForQuery(brokerUrl, selectionQuery.realtimeSelectQuery)
         Map(TableType.REALTIME -> realtimeRoutingTable)
       } else {
         // hybrid table
         val offlineRoutingTable =
-          getRoutingTableForQuery(brokerUrl, generatedSQLs.offlineSelectQuery)
+          getRoutingTableForQuery(brokerUrl, selectionQuery.offlineSelectQuery)
         val realtimeRoutingTable =
-          getRoutingTableForQuery(brokerUrl, generatedSQLs.realtimeSelectQuery)
+          getRoutingTableForQuery(brokerUrl, selectionQuery.realtimeSelectQuery)
         Map(
           TableType.OFFLINE -> offlineRoutingTable,
           TableType.REALTIME -> realtimeRoutingTable

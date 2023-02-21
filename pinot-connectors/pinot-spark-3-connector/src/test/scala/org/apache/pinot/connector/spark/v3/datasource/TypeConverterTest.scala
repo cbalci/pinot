@@ -33,7 +33,7 @@ import scala.io.Source
 /**
  * Test pinot/spark conversions like schema, data table etc.
  */
-class PinotUtilsTest extends BaseTest {
+class TypeConverterTest extends BaseTest {
 
   test("Pinot DataTable should be converted to Spark InternalRows") {
     val columnNames = Array(
@@ -113,7 +113,7 @@ class PinotUtilsTest extends BaseTest {
       )
     )
 
-    val result = PinotUtils.pinotDataTableToInternalRows(dataTable, schema).head
+    val result = TypeConverter.pinotDataTableToInternalRows(dataTable, schema).head
     result.getArray(0) shouldEqual ArrayData.toArrayData(Seq(1, 2, 0))
     result.getInt(1) shouldEqual 5
     result.getArray(2) shouldEqual ArrayData.toArrayData(Seq(0d, 10.3d))
@@ -154,7 +154,7 @@ class PinotUtilsTest extends BaseTest {
     )
 
     val exception = intercept[PinotException] {
-      PinotUtils.pinotDataTableToInternalRows(dataTable, schema)
+      TypeConverter.pinotDataTableToInternalRows(dataTable, schema)
     }
 
     exception.getMessage shouldEqual s"'longCol' not found in Pinot server response"
@@ -162,7 +162,7 @@ class PinotUtilsTest extends BaseTest {
 
   test("Pinot schema should be converted to spark schema") {
     val pinotSchemaAsString = Source.fromResource("schema/pinot-schema.json").mkString
-    val resultSchema = PinotUtils.pinotSchemaToSparkSchema(Schema.fromString(pinotSchemaAsString))
+    val resultSchema = TypeConverter.pinotSchemaToSparkSchema(Schema.fromString(pinotSchemaAsString))
     val sparkSchemaAsString = Source.fromResource("schema/spark-schema.json").mkString
     val sparkSchema = DataType.fromJson(sparkSchemaAsString).asInstanceOf[StructType]
     resultSchema.fields should contain theSameElementsAs sparkSchema.fields

@@ -58,11 +58,11 @@ private[reader] class PinotServerDataFetcher(
     val pinotServerAsyncQueryResponse = pinotSplit.serverAndSegments.serverType match {
       case TableType.REALTIME =>
         val realtimeBrokerRequest =
-          CalciteSqlCompiler.compileToBrokerRequest(pinotSplit.generatedSQLs.realtimeSelectQuery)
+          CalciteSqlCompiler.compileToBrokerRequest(pinotSplit.query.realtimeSelectQuery)
         submitRequestToPinotServer(null, null, realtimeBrokerRequest, routingTableForRequest)
       case TableType.OFFLINE =>
         val offlineBrokerRequest =
-          CalciteSqlCompiler.compileToBrokerRequest(pinotSplit.generatedSQLs.offlineSelectQuery)
+          CalciteSqlCompiler.compileToBrokerRequest(pinotSplit.query.offlineSelectQuery)
         submitRequestToPinotServer(offlineBrokerRequest, routingTableForRequest, null, null)
     }
 
@@ -112,7 +112,7 @@ private[reader] class PinotServerDataFetcher(
     logInfo(s"Sending request to ${pinotSplit.serverAndSegments.toString}")
     queryRouter.submitQuery(
       partitionId,
-      pinotSplit.generatedSQLs.rawTableName,
+      pinotSplit.query.rawTableName,
       offlineBrokerRequest,
       offlineRoutingTable,
       realtimeBrokerRequest,

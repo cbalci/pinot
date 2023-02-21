@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -46,7 +46,7 @@ import org.apache.pinot.spi.config.table.TableType
 private[pinot] object PinotSplitter extends Logging {
 
   def generatePinotSplits(
-                           generatedSQLs: SelectionQuery,
+                           query: SelectionQuery,
                            routingTable: Map[TableType, Map[String, List[String]]],
                            instanceInfoReader: String => InstanceInfo,
                            readParameters: PinotDataSourceReadOptions): List[PinotSplit] = {
@@ -58,7 +58,7 @@ private[pinot] object PinotSplitter extends Logging {
             case (instanceInfo, segments) =>
               createPinotSplitsFromSubSplits(
                 tableType,
-                generatedSQLs,
+                query,
                 instanceInfo,
                 segments,
                 readParameters.segmentsPerSplit)
@@ -68,7 +68,7 @@ private[pinot] object PinotSplitter extends Logging {
 
   private def createPinotSplitsFromSubSplits(
                                               tableType: TableType,
-                                              generatedSQLs: SelectionQuery,
+                                              query: SelectionQuery,
                                               instanceInfo: InstanceInfo,
                                               segments: List[String],
                                               segmentsPerSplit: Int): Iterator[PinotSplit] = {
@@ -81,13 +81,13 @@ private[pinot] object PinotSplitter extends Logging {
           subSegments,
           tableType)
       }
-      PinotSplit(generatedSQLs, serverAndSegments)
+      PinotSplit(query, serverAndSegments)
     }
   }
 }
 
 private[pinot] case class PinotSplit(
-                                      generatedSQLs: SelectionQuery,
+                                      query: SelectionQuery,
                                       serverAndSegments: PinotServerAndSegments)
 
 private[pinot] case class PinotServerAndSegments(

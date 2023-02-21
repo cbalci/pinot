@@ -14,7 +14,7 @@ import scala.collection.JavaConverters._
 /**
  * Helper methods for spark-pinot conversions
  */
-private[pinot] object PinotUtils {
+private[pinot] object TypeConverter {
 
   /** Convert a Pinot schema to Spark schema. */
   def pinotSchemaToSparkSchema(schema: Schema): StructType = {
