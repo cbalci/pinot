@@ -68,6 +68,9 @@ class PinotScan(
   }
 
   override def createReaderFactory(): PartitionReaderFactory = {
+    // necessary to make PartitionReaderFactory serializable
+    val _schema = this.schema
+
     (partition: InputPartition) => {
       partition match {
         case p: PinotInputPartition =>
@@ -76,7 +79,7 @@ class PinotScan(
             override def _pinotSplit: PinotSplit = p.pinotSplit
             override def _dataSourceOptions: PinotDataSourceReadOptions = p.dataSourceOptions
             override def _translator: DataTable => Seq[InternalRow] =
-              TypeConverter.pinotDataTableToInternalRows(_, schema)
+              TypeConverter.pinotDataTableToInternalRows(_, _schema)
           }
         case _ =>
           throw new Exception("Unknown InputPartition type. Expecting PinotInputPartition")

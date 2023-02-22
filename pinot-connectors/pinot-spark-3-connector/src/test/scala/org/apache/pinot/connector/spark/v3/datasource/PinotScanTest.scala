@@ -43,6 +43,8 @@ class PinotScanTest extends BaseTest {
     val scan = new PinotScan(scanQuery, schema, readOptions)
     val readerFactory = scan.createReaderFactory()
 
+
+
     // assert PinotScan creates a PartitionReaderFactory
     readerFactory shouldBe a [PartitionReaderFactory]
   }

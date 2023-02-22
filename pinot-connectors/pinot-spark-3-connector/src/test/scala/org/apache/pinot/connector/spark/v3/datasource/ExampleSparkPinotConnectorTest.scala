@@ -37,15 +37,14 @@ object ExampleSparkPinotConnectorTest extends Logging {
       .getOrCreate()
 
     readOffline()
-//    readHybrid()
-//    readHybridWithSpecificSchema()
-//    readHybridWithFilters()
-//    readHybridViaGrpc()
-//    readRealtimeViaGrpc()
-//    readRealtimeWithFilterViaGrpc()
-//    readHybridWithFiltersViaGrpc()
-//    readRealtimeWithSelectionColumns()
-//    applyJustSomeFilters()
+    readHybrid()
+    readHybridWithFilters()
+    readHybridViaGrpc()
+    readRealtimeViaGrpc()
+    readRealtimeWithFilterViaGrpc()
+    readHybridWithFiltersViaGrpc()
+    readRealtimeWithSelectionColumns()
+    applyJustSomeFilters()
   }
 
   def readOffline()(implicit spark: SparkSession): Unit = {
@@ -65,29 +64,6 @@ object ExampleSparkPinotConnectorTest extends Logging {
       .format("pinot")
       .option("table", "airlineStats")
       .option("tableType", "hybrid")
-      .load()
-
-    data.show()
-  }
-
-  def readHybridWithSpecificSchema()(implicit spark: SparkSession): Unit = {
-    log.info("## Reading `airlineStats_OFFLINE and airlineStats_REALTIME` tables with specific schema... ##")
-    val schema = StructType(
-      Seq(
-        StructField("Distance", DataTypes.IntegerType),
-        StructField("AirlineID", DataTypes.IntegerType),
-        StructField("DaysSinceEpoch", DataTypes.IntegerType),
-        StructField("DestStateName", DataTypes.StringType),
-        StructField("Origin", DataTypes.StringType),
-        StructField("Carrier", DataTypes.StringType)
-      )
-    )
-
-    val data = spark.read
-      .format("pinot")
-      .option("table", "airlineStats")
-      .option("tableType", "HYBRID")
-      .schema(schema)
       .load()
 
     data.show()
