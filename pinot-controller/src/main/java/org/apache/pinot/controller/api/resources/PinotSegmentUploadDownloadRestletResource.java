@@ -250,6 +250,12 @@ public class PinotSegmentUploadDownloadRestletResource {
     String sourceDownloadURIStr = extractHttpHeader(headers, FileUploadDownloadClient.CustomHeaders.DOWNLOAD_URI);
     String crypterClassNameInHeader = extractHttpHeader(headers, FileUploadDownloadClient.CustomHeaders.CRYPTER);
     String ingestionDescriptor = extractHttpHeader(headers, CommonConstants.Controller.INGESTION_DESCRIPTOR);
+    String copySegmentToDeepStoreHeader =
+            extractHttpHeader(headers, FileUploadDownloadClient.CustomHeaders.COPY_SEGMENT_TO_DEEP_STORE);
+    // Override copySegmentToFinalLocation if COPY_SEGMENT_TO_DEEP_STORE header is provided
+    if (StringUtils.isNotEmpty(copySegmentToDeepStoreHeader)) {
+      copySegmentToFinalLocation = Boolean.parseBoolean(copySegmentToDeepStoreHeader);
+    }
 
     File tempEncryptedFile = null;
     File tempDecryptedFile = null;
@@ -303,11 +309,9 @@ public class PinotSegmentUploadDownloadRestletResource {
                 "Source download URI is required in header field 'DOWNLOAD_URI' for METADATA upload mode",
                 Response.Status.BAD_REQUEST);
           }
-          // override copySegmentToFinalLocation if override provided in headers:COPY_SEGMENT_TO_DEEP_STORE
-          // else set to false for backward compatibility
-          String copySegmentToDeepStore =
-              extractHttpHeader(headers, FileUploadDownloadClient.CustomHeaders.COPY_SEGMENT_TO_DEEP_STORE);
-          copySegmentToFinalLocation = Boolean.parseBoolean(copySegmentToDeepStore);
+          // If COPY_SEGMENT_TO_DEEP_STORE header is not provided, set copySegmentToFinalLocation to false
+          // for backward compatibility
+          copySegmentToFinalLocation = Boolean.parseBoolean(copySegmentToDeepStoreHeader);
           createSegmentFileFromMultipart(multiPart, destFile);
           PinotFS pinotFS = null;
           try {
@@ -898,7 +902,8 @@ public class PinotSegmentUploadDownloadRestletResource {
   @TrackedByGauge(gauge = ControllerGauge.SEGMENT_UPLOADS_IN_PROGRESS)
   // We use this endpoint with URI upload because a request sent with the multipart content type will reject the POST
   // request if a multipart object is not sent. This endpoint is recommended for use. It differs from the first
-  // endpoint in how it moves the segment to a Pinot-determined final directory.
+  // endpoint in how it moves the segment to a Pinot-determined final directory by default, but this behavior can be
+  // overwritten with COPY_SEGMENT_TO_DEEP_STORE header.
   public void uploadSegmentAsJsonV2(String segmentJsonStr,
       @ApiParam(value = "Name of the table") @QueryParam(FileUploadDownloadClient.QueryParameters.TABLE_NAME)
       String tableName,
